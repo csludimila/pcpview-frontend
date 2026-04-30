@@ -1,15 +1,41 @@
+.container-fluid {
+  background-color: #1a1d21;
+  min-height: 100vh;
+  padding: 40px;
+}
+
+/* Card Neumórfico - O segredo está aqui */
 .card-maquina {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border-radius: 12px;
+  background: #1a1d21 !important; /* Mesma cor do fundo */
+  border: none !important;
+  border-radius: 30px !important;
+  /* Sombra escura embaixo e clara em cima */
+  box-shadow: 9px 9px 16px #121417, 
+             -9px -9px 16px #22262b; 
+  transition: all 0.3s ease;
+  padding: 20px;
 }
 
 .card-maquina:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.12) !important;
+  /* Efeito de "afundar" ou brilhar ao passar o mouse */
+  box-shadow: inset 6px 6px 12px #121417, 
+              inset -6px -6px 12px #22262b;
+  transform: scale(0.98);
 }
 
-.badge {
-  padding: 8px 12px;
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
+/* Títulos com brilho suave */
+h1, .card-title {
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(255,255,255,0.1);
+}
+
+/* Badge do Operador estilizada */
+.badge-operador {
+  background: #1a1d21;
+  border-radius: 10px;
+  box-shadow: inset 2px 2px 5px #121417, 
+              inset -2px -2px 5px #22262b;
+  color: #00d4ff;
+  padding: 10px 20px;
+  border: none;
 }

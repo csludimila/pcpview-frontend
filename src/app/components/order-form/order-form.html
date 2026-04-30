@@ -1,30 +1,54 @@
-<div class="card shadow-sm border-0 mt-4">
-  <div class="card-header bg-dark text-white">
-    <h5 class="mb-0">🆕 Planejamento de Nova OF</h5>
-  </div>
-  <div class="card-body">
-    <form (ngSubmit)="gerarProducao()">
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label font-weight-bold">OF Principal</label>
-          <input type="text" class="form-control" [(ngModel)]="novaOF.ofPrincipal" name="ofPrincipal" placeholder="Ex: 1000" required>
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label font-weight-bold">Produto</label>
-          <input type="text" class="form-control" [(ngModel)]="novaOF.produto" name="produto" placeholder="Ex: Eixo de Transmissão">
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label font-weight-bold">Quantidade</label>
-          <input type="number" class="form-control" [(ngModel)]="novaOF.quantidade" name="quantidade" min="1" required>
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-10"> <header class="mb-4 px-2">
+        <h5 class="fw-bold text-white">🆕 Planejamento de Nova OF</h5>
+        <hr style="border-color: rgba(255,255,255,0.1)">
+      </header>
+
+      <div class="card card-neumorphic border-0">
+        <div class="card-body">
+          <form (ngSubmit)="gerarProducao()">
+            <div class="row">
+              
+              <div class="col-md-4 mb-3">
+                <label class="form-label">OF Principal</label>
+                <input type="text" 
+                       class="form-control form-control-neumorphic" 
+                       [(ngModel)]="novaOF.ofPrincipal" 
+                       name="ofPrincipal" 
+                       placeholder="Ex: 1000" required>
+              </div>
+
+              <div class="col-md-5 mb-3">
+                <label class="form-label">Produto</label>
+                <input type="text" 
+                       class="form-control form-control-neumorphic" 
+                       [(ngModel)]="novaOF.produto" 
+                       name="produto" 
+                       placeholder="Ex: Eixo de Transmissão">
+              </div>
+
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Quantidade</label>
+                <input type="number" 
+                       class="form-control form-control-neumorphic" 
+                       [(ngModel)]="novaOF.quantidade" 
+                       name="quantidade" 
+                       min="1" required>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+              <button type="submit" 
+                      class="btn-neumorphic px-5" 
+                      [disabled]="!novaOF.ofPrincipal || novaOF.quantidade <= 0">
+                🚀 Gerar Etapas de Produção
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-      <div class="d-flex justify-content-end mt-2">
-        <button type="submit" 
-        class="btn btn-primary px-4 shadow-sm" 
-        [disabled]="!novaOF.ofPrincipal || novaOF.quantidade <= 0">
-  🚀 Gerar Etapas de Produção
-        </button>
-      </div>
-    </form>
+
+    </div>
   </div>
 </div>
