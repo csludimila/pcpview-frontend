@@ -1,0 +1,18 @@
+.bg-dark-blue {
+  background-color: #0d2137; /* Cor azul marinho do protótipo */
+}
+
+.custom-label {
+  width: 180px; /* Largura fixa para alinhar os campos */
+  justify-content: flex-start;
+}
+
+.card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #dee2e6;
+}
+
+.form-control, .form-select {
+  border-radius: 0 8px 8px 0;
+}
