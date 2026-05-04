@@ -38,4 +38,79 @@ h1, .card-title {
   color: #00d4ff;
   padding: 10px 20px;
   border: none;
+} 
+/* --- Estilização Extra para o Painel de Operação --- */
+
+/* 1. Display da OF (Aquele campo que parece um buraco no card) */
+.of-ativa-display {
+  background: #1a1d21;
+  padding: 12px;
+  border-radius: 12px;
+  /* Sombra interna para dar profundidade */
+  box-shadow: inset 6px 6px 12px #121417, 
+              inset -4px -4px 10px #22262b;
+  margin-bottom: 20px;
+}
+
+/* 2. Base dos Botões Coloridos */
+.btn-modelo {
+  border: none;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 12px 5px;
+  color: white;
+  text-transform: uppercase;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Sombra externa sutil */
+  box-shadow: 4px 4px 10px #121417;
+}
+
+/* 3. Cores e Gradientes específicos do modelo */
+.btn-start { 
+  background: linear-gradient(145deg, #2ecc71, #27ae60); 
+}
+.btn-start:hover { box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); }
+
+.btn-pause { 
+  background: linear-gradient(145deg, #f39c12, #e67e22); 
+}
+.btn-pause:hover { box-shadow: 0 0 15px rgba(243, 156, 18, 0.4); }
+
+.btn-maintenance { 
+  background: linear-gradient(145deg, #e74c3c, #c0392b); 
+}
+.btn-maintenance:hover { box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
+
+.btn-running { 
+  background: linear-gradient(145deg, #3498db, #2980b9); 
+}
+.btn-running:hover { box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); }
+
+/* O botão de Apontar é o que tem o maior destaque (Roxo) */
+.btn-finish { 
+  background: linear-gradient(145deg, #9b59b6, #8e44ad);
+  box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4); 
+}
+.btn-finish:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(155, 89, 182, 0.6);
+}
+
+/* Efeito de clique para todos os botões coloridos */
+.btn-modelo:active {
+  transform: scale(0.95);
+  box-shadow: inset 4px 4px 8px rgba(0,0,0,0.4);
+}
+
+/* Estilo para a Tabela de Rastreabilidade no fundo */
+.custom-table {
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.custom-table thead th {
+  border: none;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
 }

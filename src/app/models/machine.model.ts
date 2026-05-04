@@ -1,13 +1,10 @@
-// src/app/models/machine.model.ts
-export enum MachineStatus {
-  DISPONIVEL = 'DISPONIVEL',
-  TRABALHANDO = 'TRABALHANDO',
-  QUEBRADA = 'QUEBRADA'
-}
+// Mantemos os tipos para o visual do Front-end
+export type MachineStatus = 'DISPONIVEL' | 'TRABALHANDO' | 'PAUSADO' | 'MANUTENÇÃO';
 
 export interface MachineModel {
-  id?: number;
+  id?: string;          // 
   nome: string;
-  status: MachineStatus;
+  operacional: boolean;
+  status?: MachineStatus; 
+  ofAtiva?: string;
 }
-

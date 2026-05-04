@@ -1,5 +1,17 @@
+:root {
+  --bg-color: #1a1d21;
+  --neumorphic-shadow-dark: #0e1013;
+  --neumorphic-shadow-light: #262a2f;
+  
+  /* Cores de Status do Modelo */
+  --status-start: #28a745;
+  --status-pause: #ff8c00;
+  --status-maintenance: #dc3545;
+  --status-running: #007bff;
+  --status-finish: #6f42c1;
+}
+
 body {
-  background-color: #1a1d21 !important; /* Cor idêntica ao CodePen */
-  margin: 0;
-  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color) !important;
+  color: white;
 }

@@ -1,43 +1,49 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { MachineModel } from '../models/machine.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MachineService {
-  private readonly API = 'http://localhost:8080/machine'; // Ajuste para a URL real do seu back-end
+  private readonly API = 'http://localhost:8080/machine';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
-  // GET /machine
+  // GET /machine - Listar e traduzir operacional para status
   listAll(): Observable<MachineModel[]> {
-    return this.http.get<MachineModel[]>(this.API);
+    return this.http.get<MachineModel[]>(this.API).pipe(
+      map(machines => machines.map(m => ({
+        ...m,
+        // Tradução lógica: se operacional for true, status é DISPONIVEL, senão MANUTENÇÃO
+        status: m.operacional ? 'DISPONIVEL' : 'MANUTENÇÃO'
+      })))
+    );
   }
 
-  // POST /machine
-  save(machine: MachineModel): Observable<MachineModel> {
-    return this.http.post<MachineModel>(this.API, machine);
+  save(idDaMaquina: string, nomeDaMaquina: string): Observable<MachineModel> {
+    return this.http.post<MachineModel>(this.API, {
+      id: idDaMaquina,
+      nome: nomeDaMaquina
+    });
   }
 
-  // PATCH /machine/updateName/{id}
-  updateName(id: number, newName: string): Observable<any> {
-    return this.http.patch(`${this.API}/updateName/${id}`, { nome: newName });
+  updateName(id: string, newName: string): Observable<MachineModel> { // Mude de <any> para <MachineModel>
+    return this.http.patch<MachineModel>(`${this.API}/updateName/${id}`, { nome: newName });
   }
 
-  // PATCH /machine/toggleOperationalStatus/{id}
-  toggleStatus(id: number): Observable<any> {
-    return this.http.patch(`${this.API}/toggleOperationalStatus/${id}`, {});
+
+  toggleStatus(id: string): Observable<MachineModel> {
+
+    return this.http.patch<MachineModel>(`${this.API}/toggleOperationalStatus/${id}`, {});
   }
 
-  // GET /machine/{id}
-  getById(id: number): Observable<MachineModel> {
+  getById(id: string): Observable<MachineModel> {
     return this.http.get<MachineModel>(`${this.API}/${id}`);
   }
 
-  // DELETE /machine/{id}
-  delete(id: number): Observable<any> {
+  delete(id: string): Observable<any> {
     return this.http.delete(`${this.API}/${id}`);
   }
 }

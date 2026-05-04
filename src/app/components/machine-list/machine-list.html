@@ -5,55 +5,119 @@
       <p class="text-muted mb-0" style="font-size: 0.85rem; opacity: 0.7;">Monitoramento de ativos em tempo real</p>
     </div>
     <div class="badge-operador">
-      <span class="dot-online" style="width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 8px;"></span>
+      <span class="dot-online"
+        style="width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 8px;"></span>
       Operador: Fábrica 01
     </div>
   </header>
 
   <div class="row g-4 px-3">
     <div class="col-md-4 mb-4" *ngFor="let m of machines">
-      <div class="card card-maquina h-100">
+      <div class="card card-maquina h-100" [style.border-left]="
+        m.status === 'TRABALHANDO' ? '4px solid #007bff' : 
+        m.status === 'PAUSADO' ? '4px solid #f39c12' : 
+        m.status === 'MANUTENÇÃO' ? '4px solid #dc3545' : 
+        '4px solid #28a745'">
+
         <div class="card-body d-flex flex-column">
-          
-          <div class="d-flex justify-content-between align-items-start mb-4">
-            <h5 class="card-title fw-bold m-0" style="color: #fff;">{{ m.nome }}</h5>
-            <div class="d-flex align-items-center gap-2">
-              <div class="status-dot" [ngClass]="m.status === 'DISPONIVEL' ? 'dot-online' : 'dot-offline'"></div>
-              <small class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">
-                {{ m.status }}
-              </small>
-            </div>
+
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="text-uppercase small fw-bold opacity-50 m-0">{{ m.nome }}</h6>
+            <div class="status-dot" [ngClass]="m.status === 'DISPONIVEL' ? 'dot-online' : 'dot-offline'"></div>
           </div>
-          
-          <p class="text-secondary small mb-4">ID do Ativo: #00{{ m.id }}</p>
+
+          <h2 class="fw-bold mb-3">{{ m.status }}</h2>
+
+          <div class="of-ativa-display mb-4">
+            <span class="small opacity-50">OF Ativa: </span>
+            <span class="small fw-bold">{{ m.ofAtiva || 'Nenhuma' }}</span>
+          </div>
 
           <div class="mt-auto">
-            <button *ngIf="m.status === 'DISPONIVEL'" 
-                    (click)="abrirSelecaoOF(m)" 
-                    class="btn btn-primary w-100 mb-3 py-2 fw-bold" 
-                    data-bs-toggle="modal" data-bs-target="#modalSelecaoOF">
-              🚀 INICIAR PRODUÇÃO
-            </button>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <button class="btn btn-modelo btn-start w-100" [disabled]="m.status !== 'DISPONIVEL'"
+                  (click)="abrirSelecaoOF(m)" data-bs-toggle="modal" data-bs-target="#modalSelecaoOF">
+                  ▶ Iniciar
+                </button>
+              </div>
+              <div class="col-6">
+                <button class="btn btn-modelo btn-pause w-100" (click)="m.status = 'PAUSADO'">
+                  ⏸ Pausa
+                </button>
+              </div>
+              <div class="col-6">
+                <button class="btn btn-modelo btn-maintenance w-100" (click)="m.status = 'MANUTENÇÃO'">
+                  ⚠️ Manutenção
+                </button>
+              </div>
+              <div class="col-6">
+                <button class="btn btn-modelo btn-running w-100">
+                  ✅ Funcionando
+                </button>
+              </div>
+              <div class="col-12 mt-2">
+                <button class="btn btn-modelo btn-finish w-100" [disabled]="m.status !== 'TRABALHANDO'"
+                  (click)="abrirApontamento(m)">
+                  Apontar Peças / Finalizar
+                </button>
+              </div>
+            </div>
 
-            <button *ngIf="m.status === 'TRABALHANDO'" 
-                    (click)="abrirApontamento(m)" 
-                    class="btn btn-warning w-100 text-dark fw-bold mb-3 py-2">
-              ✅ APONTAR PEÇAS
-            </button>
-
-            <div class="d-flex justify-content-end gap-3 pt-3 border-top border-secondary border-opacity-10">
-              <button (click)="alterarNome(m.id!)" class="btn btn-link btn-sm text-info opacity-50 p-0" title="Renomear">
-                ✏️
-              </button>
-              <button (click)="alterarStatus(m.id!)" class="btn btn-link btn-sm text-warning opacity-50 p-0" title="Status">
-                ⚙️
-              </button>
-              <button (click)="deletar(m.id!)" class="btn btn-link btn-sm text-danger opacity-50 p-0" title="Excluir">
-                🗑️
-              </button>
+            <div class="d-flex justify-content-end gap-3 pt-2 border-top border-secondary border-opacity-10">
+              <button (click)="alterarNome(m)" class="btn btn-link btn-sm text-info opacity-50 p-0">✏️</button>
+              <button (click)="alterarStatus(m.id!)" class="btn btn-link btn-sm text-warning opacity-50 p-0">⚙️</button>
+              <button (click)="deletar(m.id!)" class="btn btn-link btn-sm text-danger opacity-50 p-0">🗑️</button>
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row px-3 mt-5">
+    <div class="col-12">
+      <div class="card card-maquina p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h6 class="text-primary fw-bold m-0">● RASTREABILIDADE GLOBAL (ERP)</h6>
+          <input type="text" class="form-control-neumorphic w-25" placeholder="🔍 Buscar Lote...">
+        </div>
+        <div class="table-responsive">
+          <table class="table table-dark table-hover m-0">
+            <thead>
+              <tr>
+                <th class="border-0 opacity-50">LOTE / ETAPA</th>
+                <th class="border-0 opacity-50">SALDO</th>
+                <th class="border-0 opacity-50">STATUS</th>
+                <th class="border-0 opacity-50 text-end">HISTÓRICO</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="orders.length === 0">
+                <td colspan="4" class="text-center py-4 opacity-25">Nenhum registro no momento.</td>
+              </tr>
+
+              <tr *ngFor="let ordem of orders" class="align-middle">
+                <td class="border-0">
+                  <span class="fw-bold text-white">{{ ordem.ofGerada }}</span>
+                  <br>
+                  <small class="text-muted">{{ ordem.nome }}</small>
+                </td>
+
+                {{ ordem.sku }}
+                
+                <td class="border-0 text-center">
+                  <span class="badge bg-dark border border-secondary text-info">
+                    {{ ordem.status }}
+                  </span>
+                </td>
+                <td class="border-0 text-end">
+                  <button class="btn btn-link btn-sm text-info opacity-75">Visualizar</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

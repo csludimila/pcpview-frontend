@@ -1,0 +1,47 @@
+/* login.css */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #1a1d21; /* Cor de fundo escura do seu projeto */
+}
+
+.neo-card {
+  padding: 40px;
+  border-radius: 30px;
+  background: #1a1d21;
+  box-shadow: 10px 10px 20px #0d0e10, -10px -10px 20px #272c32;
+  text-align: center;
+  width: 350px;
+}
+
+.neo-input {
+  width: 100%;
+  padding: 15px;
+  margin: 15px 0;
+  border: none;
+  border-radius: 10px;
+  background: #1a1d21;
+  box-shadow: inset 5px 5px 10px #0d0e10, inset -5px -5px 10px #272c32;
+  color: white;
+  outline: none;
+}
+
+.neo-button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 10px;
+  background: #1a1d21;
+  box-shadow: 5px 5px 10px #0d0e10, -5px -5px 10px #272c32;
+  color: #00d4ff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.neo-button:active {
+  box-shadow: inset 3px 3px 6px #0d0e10, inset -3px -3px 6px #272c32;
+}
