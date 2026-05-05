@@ -20,15 +20,11 @@ export class LoginComponent {
   ) { }
 
 
-  fazerLogin() {
+  login() {
     this.authService.login(this.credenciais).subscribe({
       next: (res) => {
-        // De acordo com o LoginResponseDTO, o Java retorna { token: "..." }
         this.authService.setToken(res.token);
-
         alert('Login realizado com sucesso!');
-
-        // Redireciona para a tela inicial do sistema (Escritório)
         this.router.navigate(['/escritorio']);
       },
       error: (err) => {

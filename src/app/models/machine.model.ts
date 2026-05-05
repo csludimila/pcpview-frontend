@@ -1,4 +1,3 @@
-// Mantemos os tipos para o visual do Front-end
 export type MachineStatus = 'DISPONIVEL' | 'TRABALHANDO' | 'PAUSADO' | 'MANUTENÇÃO';
 
 export interface MachineModel {
