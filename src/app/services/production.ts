@@ -2,44 +2,48 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ProductOrderModel } from '../models/ordem-producao';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
+
 export class ProductionService {
   private http = inject(HttpClient);
   private readonly API = 'http://localhost:8080/product';
 
-  constructor() { }
 
-  // GET /product: Lista todos os produtos
   listarTodas(): Observable<ProductOrderModel[]> {
-    return this.http.get<ProductOrderModel[]>(this.API);
+    return this.http.get<ProductOrderModel[]>(this.API).pipe(
+      // 2. Tipamos o 'dados' como ProductOrderModel[] para o TS parar de reclamar
+      map((dados: ProductOrderModel[]) => {
+        console.log('Dados brutos do Back-end:', dados);
+        return dados;
+      })
+    );
   }
 
 
-  cadastrar(produto: { sku: string; nome: string }): Observable<any> {
-    const dadosComId = {
-      id: produto.sku, 
-      sku: produto.sku,
-      nome: produto.nome
-    };
-    return this.http.post(this.API, dadosComId);
-  }
+cadastrar(produto: { sku: string; nome: string }): Observable < any > {
 
-  // DELETE /product/{id}: Remove um produto
-  deletar(id: string): Observable<any> {
-    return this.http.delete(`${this.API}/${id}`);
-  }
+  const dadosParaEnviar = {
+    sku: produto.sku,
+    nome: produto.nome
+  };
+  return this.http.post(this.API, dadosParaEnviar);
+}
 
-  // PATCH /product/updateName/{id}: Atualiza apenas o nome
-  atualizarNome(id: string, novoNome: string): Observable<any> {
-    // Conforme o Swagger, enviamos o ID na URL e o nome no corpo (body)
-    return this.http.patch(`${this.API}/updateName/${id}`, { nome: novoNome });
-  }
 
-  buscarPorId(id: string): Observable<ProductOrderModel> {
-    // Conforme o print: GET /product/{id}
-    return this.http.get<ProductOrderModel>(`${this.API}/${id}`);
-  }
+deletar(id: string): Observable < any > {
+  return this.http.delete(`${this.API}/${id}`);
+}
+
+
+atualizarNome(id: string, novoNome: string): Observable < any > {
+  return this.http.patch(`${this.API}/updateName/${id}`, { nome: novoNome });
+}
+
+buscarPorId(id: string): Observable < ProductOrderModel > {
+  return this.http.get<ProductOrderModel>(`${this.API}/${id}`);
+}
 }

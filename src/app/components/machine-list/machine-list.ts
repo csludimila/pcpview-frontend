@@ -77,7 +77,7 @@ export class MachineListComponent implements OnInit {
     }
   }
 
-  // Função genérica caso queira mudar o status via código
+
   alterarStatusManual(maquina: MachineModel, novoStatus: MachineStatus) {
     maquina.status = novoStatus;
   }
@@ -100,27 +100,29 @@ export class MachineListComponent implements OnInit {
     }
   }
 
-
   abrirApontamento(maquina: MachineModel) {
     const qtdProd = prompt(`Quantas peças foram produzidas na ${maquina.nome}?`);
 
     if (qtdProd) {
-      // 1. Voltamos a máquina para Disponível
+      // 1. PRIMEIRO buscamos a ordem usando o que ainda está na máquina
+      const ordem = this.orders.find(o => o.ofGerada === maquina.ofAtiva);
+
+      if (ordem) {
+        ordem.status = OrderStatus.FINALIZADA;
+        console.log(`Ordem ${ordem.ofGerada} finalizada.`);
+      }
+
+      // 2. DEPOIS limpamos a máquina
       maquina.status = 'DISPONIVEL';
       maquina.ofAtiva = '';
 
-
-      const ordem = this.orders.find(o => o.ofGerada === maquina.ofAtiva);
-      if (ordem) {
-        ordem.status = OrderStatus.FINALIZADA;
-      }
-
-
+      // 3. Salvamos o estado das ordens no navegador
       localStorage.setItem('minhas-ordens', JSON.stringify(this.orders));
 
       alert('Produção apontada com sucesso!');
     }
   }
+
   // --- GERENCIAMENTO (SWAGGER/API) ---
 
   alterarStatus(id: string) {

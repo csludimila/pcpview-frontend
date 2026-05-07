@@ -21,14 +21,20 @@ export class LoginComponent {
 
 
   login() {
+    if (!this.credenciais.email || !this.credenciais.password) {
+      alert('Por favor, preencha todos os campos.');
+      return;
+    }
+
     this.authService.login(this.credenciais).subscribe({
       next: (res) => {
         this.authService.setToken(res.token);
-        alert('Login realizado com sucesso!');
+        console.log('Token recebido:', res.token);
         this.router.navigate(['/escritorio']);
       },
       error: (err) => {
         console.error('Erro no login:', err);
+
         alert('Falha na autenticação. Verifique seu e-mail e senha.');
       }
     });

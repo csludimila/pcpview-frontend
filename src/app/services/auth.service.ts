@@ -21,7 +21,7 @@ export class AuthService {
 
   cadastrar(usuario: UserModel): Observable<any> {
 
-    return this.http.post(`${this.API}/register`, usuario);
+    return this.http.post(`${this.API}`, usuario);
   }
 
   getToken() {

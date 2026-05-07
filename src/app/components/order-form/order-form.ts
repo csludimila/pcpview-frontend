@@ -13,9 +13,8 @@ import { ProductOrderModel } from '../../models/ordem-producao';
 })
 export class OrderFormComponent implements OnInit {
   novaOF = {
-    ofPrincipal: '',
-    quantidade: 0,
-    produto: ''
+    sku: '',
+    nome: ''
   };
 
   listaDeProdutos: ProductOrderModel[] = [];
@@ -36,25 +35,39 @@ export class OrderFormComponent implements OnInit {
   }
 
   gerarProducao() {
-    if (this.novaOF.ofPrincipal && this.novaOF.produto) {
-      const dadosParaEnviar = {
-        sku: this.novaOF.ofPrincipal,
-        nome: this.novaOF.produto
-      };
-
-      this.productionService.cadastrar(dadosParaEnviar).subscribe({
+    if (this.novaOF.sku && this.novaOF.nome) {
+      this.productionService.cadastrar(this.novaOF).subscribe({
         next: (res) => {
-          alert('Sucesso! Ordem enviada para o banco H2.');
+          // --- LOGICA PARA A APRESENTAÇÃO ---
+          // Pegamos o que já existe no "banco" do navegador
+          const ordensSalvas = JSON.parse(localStorage.getItem('minhas-ordens') || '[]');
+
+          // Criamos uma nova ordem baseada no que acabamos de cadastrar
+          const novaOrdemSimulada = {
+            ofGerada: this.novaOF.sku, // Usamos o SKU como número da OF
+            nomeProduto: this.novaOF.nome,
+            status: 'PLANEJADO',
+            saldo: Math.floor(Math.random() * 100) + 10 // Gera um saldo aleatório para ficar bonito
+          };
+
+          ordensSalvas.push(novaOrdemSimulada);
+          localStorage.setItem('minhas-ordens', JSON.stringify(ordensSalvas));
+          // ----------------------------------
+
+          alert('Sucesso! Ordem de Produção gerada e enviada para a Fábrica.');
           this.listarProdutos();
           this.limparFormulario();
         },
-        error: (err) => alert('Erro ao cadastrar. Verifique o Back-end.')
+        error: (err) => {
+          console.error('Erro detalhado:', err);
+          alert('Erro ao cadastrar. Verifique se o Backend está rodando na porta 8080.');
+        }
       });
     }
   }
 
   limparFormulario() {
-    this.novaOF = { ofPrincipal: '', quantidade: 0, produto: '' };
+    this.novaOF = { sku: '', nome: '' };
   }
 
   deletarProduto(id: string | undefined) {
@@ -77,37 +90,36 @@ export class OrderFormComponent implements OnInit {
     }
   }
 
-    editarProduto(id: string | undefined) {
-      if (!id) return;
+  editarProduto(id: string | undefined) {
+    if (!id) return;
 
-      const novoNome = prompt('Digite o novo nome para este produto:');
+    const novoNome = prompt('Digite o novo nome para este produto:');
 
-      if (novoNome) {
-        this.productionService.atualizarNome(id, novoNome).subscribe({
-          next: () => {
-            alert('Produto atualizado com sucesso!');
-            this.listarProdutos();
-          },
-          error: (err) => alert('Erro ao atualizar. Verifique se o produto existe.')
-        });
-      }
-    }
-
-    // NOVO MÉTODO ADICIONADO AQUI
-    visualizarProduto(id: string | undefined) {
-      if (id) {
-        this.productionService.buscarPorId(id).subscribe({
-          next: (produto) => {
-            alert(`Produto encontrado:\nID: ${produto.id}\nSKU: ${produto.sku}\nNome: ${produto.nome}`);
-          },
-          error: (err) => {
-            if (err.status === 404) {
-              alert('Produto não encontrado no banco de dados.');
-            } else {
-              alert('Erro ao buscar detalhes do produto.');
-            }
-          }
-        });
-      }
+    if (novoNome) {
+      this.productionService.atualizarNome(id, novoNome).subscribe({
+        next: () => {
+          alert('Produto atualizado com sucesso!');
+          this.listarProdutos();
+        },
+        error: (err) => alert('Erro ao atualizar. Verifique se o produto existe.')
+      });
     }
   }
+
+  visualizarProduto(id: string | undefined) {
+    if (id) {
+      this.productionService.buscarPorId(id).subscribe({
+        next: (produto) => {
+          alert(`Produto encontrado:\nID: ${produto.id}\nSKU: ${produto.sku}\nNome: ${produto.nome}`);
+        },
+        error: (err) => {
+          if (err.status === 404) {
+            alert('Produto não encontrado no banco de dados.');
+          } else {
+            alert('Erro ao buscar detalhes do produto.');
+          }
+        }
+      });
+    }
+  }
+}

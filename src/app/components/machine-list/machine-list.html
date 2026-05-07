@@ -103,10 +103,11 @@
                   <span class="fw-bold text-white">{{ ordem.ofGerada }}</span>
                   <br>
                   <small class="text-muted">{{ ordem.nome }}</small>
+                  <div class="text-info" style="font-size: 0.7rem;">SKU: {{ ordem.sku }}</div>
                 </td>
 
-                {{ ordem.sku }}
-                
+                <td class="border-0 text-white">--</td>
+
                 <td class="border-0 text-center">
                   <span class="badge bg-dark border border-secondary text-info">
                     {{ ordem.status }}
@@ -116,10 +117,3 @@
                   <button class="btn btn-link btn-sm text-info opacity-75">Visualizar</button>
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
