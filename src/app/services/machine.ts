@@ -32,7 +32,7 @@ export class MachineService {
     });
   }
 
-updateName(id: string, newName: string): Observable < MachineModel > { // Mude de <any> para <MachineModel>
+updateName(id: string, newName: string): Observable < MachineModel > { 
   return this.http.patch<MachineModel>(`${this.API}/updateName/${id}`, { nome: newName });
 }
 

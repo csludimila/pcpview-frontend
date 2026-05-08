@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductionService } from '../../services/production';
 import { ProductOrderModel } from '../../models/ordem-producao';
+import { MachineService } from '../../services/machine'; // Importa o serviço [cite: 442, 463]
+import { MachineModel } from '../../models/machine.model'; // Importa o modelo da máquina
 
 @Component({
   selector: 'app-order-form',
@@ -19,10 +21,22 @@ export class OrderFormComponent implements OnInit {
 
   listaDeProdutos: ProductOrderModel[] = [];
 
-  constructor(private productionService: ProductionService) { }
+  listaDeMaquinas: MachineModel[] = [];
+
+  constructor(private productionService: ProductionService, private machineService: MachineService) { }
 
   ngOnInit() {
     this.listarProdutos();
+    this.carregarMaquinas();
+  }
+  
+  carregarMaquinas() {
+    this.machineService.listAll().subscribe({
+      next: (dados: MachineModel[]) => { 
+        this.listaDeMaquinas = dados;
+      },
+      error: (err: any) => console.error('Erro ao buscar máquinas', err) 
+    });
   }
 
   listarProdutos() {

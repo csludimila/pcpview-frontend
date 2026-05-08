@@ -1,81 +1,43 @@
-<div class="container-fluid">
-  <div class="row justify-content-center">
-    <div class="col-md-10">
-      <header class="mb-4 px-2">
-        <h5 class="fw-bold text-white">🆕 Planejamento de Nova OF</h5>
-        <hr style="border-color: rgba(255,255,255,0.1)">
-      </header>
+<div class="card-maquina p-4" style="max-width: 600px; margin: auto;">
+  <h5 class="fw-bold text-white mb-4">🏢 Planejamento (Nova OF)</h5>
 
-      <div class="card card-neumorphic border-0">
-        <div class="card-body">
-          <form (ngSubmit)="gerarProducao()">
-            <div class="row">
-              <div class="col-md-4 mb-3">
-                <label class="form-label">OF Principal</label>
-                <input type="text" class="form-control form-control-neumorphic" [(ngModel)]="novaOF.sku" name="sku"
-                  placeholder="Ex: 1000" required>
-              </div>
-
-              <div class="col-md-5 mb-3">
-                <label class="form-label">Produto</label>
-                <input type="text" class="form-control form-control-neumorphic" [(ngModel)]="novaOF.nome" name="nome"
-                  placeholder="Ex: Eixo de Transmissão">
-              </div>
-
-              <div class="d-flex justify-content-end mt-4">
-                <button type="submit" class="btn-neumorphic px-5" [disabled]="!novaOF.sku || !novaOF.nome">
-                  🚀 Gerar Etapas de Produção
-                </button>
-              </div>
-            </div> </form> </div>
-      </div>
-    </div>
+  <div class="mb-3">
+    <label class="form-label text-uppercase small opacity-50">SKU do Produto (Base)</label>
+    <input type="text" class="form-control-neumorphic" [(ngModel)]="novaOF.sku" placeholder="Ex: 1000">
   </div>
 
-  <div class="row justify-content-center mt-5">
-    <div class="col-md-10">
-      <header class="mb-4 px-2">
-        <h5 class="fw-bold text-white">📋 Ordens no Sistema </h5>
-        <hr style="border-color: rgba(255,255,255,0.1)">
-      </header>
+  <div class="mb-3">
+    <label class="form-label text-uppercase small opacity-50">Nome do Produto</label>
+    <input type="text" class="form-control-neumorphic" [(ngModel)]="novaOF.nome" placeholder="Ex: EIXO PRINCIPAL">
+  </div>
 
-      <div class="card card-neumorphic border-0">
-        <div class="card-body">
-          <table class="table table-dark table-hover mb-0">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>SKU (OF)</th>
-                <th>Nome do Produto</th>
-                <th class="text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of listaDeProdutos">
-                <td><small>{{ item.id }}</small></td>
-                <td><span class="badge bg-primary">{{ item.sku }}</span></td>
-                <td>{{ item.nome }}</td>
-                <td class="text-center">
-                  <button type="button" class="btn btn-sm btn-outline-warning border-0 me-2" (click)="visualizarProduto(item.id)">
-                    👁️
-                  </button>
-                  <button type="button" class="btn btn-sm btn-outline-info border-0 me-2" (click)="editarProduto(item.id)" title="Renomear Produto">
-                    ✏️
-                  </button>
-                  <button type="button" class="btn btn-sm btn-outline-danger border-0" (click)="deletarProduto(item.id)" title="Excluir Produto">
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-              <tr *ngIf="listaDeProdutos.length === 0">
-                <td colspan="4" class="text-center text-muted py-4">
-                  Nenhum produto encontrado no banco H2.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <div class="mb-3">
+    <label class="form-label text-uppercase small opacity-50">Qtd. Solicitada</label>
+    <input type="number" class="form-control-neumorphic" value="0">
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label text-uppercase small opacity-50">Máquina Ideal (Opcional)</label>
+    <select class="form-control-neumorphic">
+      <option value="">-- QUALQUER MÁQUINA --</option>
+      <option *ngFor="let m of listaDeMaquinas" [value]="m.id">{{ m.nome }}</option>
+    </select>
+  </div>
+
+  <button class="btn btn-orange w-100 fw-bold py-3 mb-5" (click)="gerarProducao()">
+    Gerar Ordem de Serviço
+  </button>
+
+  <hr class="opacity-10">
+
+  <div class="mt-4">
+    <label class="form-label text-uppercase small opacity-50">Excluir Ordem de Serviço</label>
+    <div class="d-flex gap-2">
+      <select class="form-control-neumorphic flex-grow-1" #selectDelete>
+        <option value="">-- EXCLUIR --</option>
+        <option *ngFor="let p of listaDeProdutos" [value]="p.id">{{ p.sku }} - {{ p.nome }}</option>
+      </select>
+      <button class="btn btn-danger px-4" (click)="deletarProduto(selectDelete.value)">Deletar</button>
     </div>
   </div>
 </div>

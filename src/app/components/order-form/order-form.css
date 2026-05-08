@@ -1,5 +1,6 @@
 .container-fluid {
-  background-color: #1a1d21; /* Fundo idêntico ao da Fábrica */
+  background-color: #1a1d21;
+  /* Fundo idêntico ao da Fábrica */
   min-height: 100vh;
   padding: 40px;
   color: #fff;
@@ -10,29 +11,54 @@
   background: #1a1d21 !important;
   border: none !important;
   border-radius: 30px !important;
-  box-shadow: 10px 10px 20px #121417, 
-             -10px -10px 20px #22262b;
+  box-shadow: 10px 10px 20px #121417,
+    -10px -10px 20px #22262b;
   padding: 30px;
 }
+
+
+.card-neumorphic {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Cria o espaçamento entre os campos do print */
+    max-width: 550px; /* Largura aproximada do seu modelo */
+    margin: 0 auto; /* Centraliza o card na tela */
+}
+
+/* Garante que cada bloco (Label + Input) ocupe a largura total */
+.card-neumorphic div.mb-3, 
+.card-neumorphic div.mb-4 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
+/* Ajuste nos inputs para preencherem o card horizontalmente */
+.form-control-neumorphic {
+    width: 100% !important;
+}
+
 
 /* Estilização dos Inputs (Efeito Afundado) */
 .form-control-neumorphic {
   background: #1a1d21 !important;
   border: none !important;
   border-radius: 15px !important;
-  color: #00d4ff !important; /* Texto em azul neon para contraste */
+  color: #00d4ff !important;
+  /* Texto em azul neon para contraste */
   padding: 15px !important;
   /* Sombra interna para o efeito côncavo */
-  box-shadow: inset 6px 6px 12px #121417, 
-              inset -6px -6px 12px #22262b !important;
+  box-shadow: inset 6px 6px 12px #121417,
+    inset -6px -6px 12px #22262b !important;
   transition: all 0.3s ease;
 }
 
 .form-control-neumorphic:focus {
   outline: none;
-  box-shadow: inset 2px 2px 5px #121417, 
-              inset -2px -2px 5px #22262b,
-              0 0 8px rgba(0, 212, 255, 0.2) !important;
+  box-shadow: inset 2px 2px 5px #121417,
+    inset -2px -2px 5px #22262b,
+    0 0 8px rgba(0, 212, 255, 0.2) !important;
 }
 
 /* Labels */
@@ -44,6 +70,29 @@
   letter-spacing: 1px;
 }
 
+/* Botão Laranja */
+.btn-orange {
+  background-color: #f36c21;
+  /* Cor extraída do print */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-orange:hover {
+  background-color: #d95a1a;
+  transform: translateY(-1px);
+}
+
+/* Estilo do Dropdown (Select) */
+select.form-control-neumorphic {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
 /* Botão de Enviar (Igual ao da Fábrica) */
 .btn-neumorphic {
   background: #1a1d21;
@@ -52,18 +101,18 @@
   color: #00d4ff;
   font-weight: bold;
   padding: 15px 30px;
-  box-shadow: 6px 6px 12px #121417, 
-             -6px -6px 12px #22262b;
+  box-shadow: 6px 6px 12px #121417,
+    -6px -6px 12px #22262b;
   transition: all 0.2s ease;
 }
 
 .btn-neumorphic:hover {
-  box-shadow: 3px 3px 6px #121417, 
-             -3px -3px 6px #22262b;
+  box-shadow: 3px 3px 6px #121417,
+    -3px -3px 6px #22262b;
   transform: scale(0.98);
 }
 
 .btn-neumorphic:active {
-  box-shadow: inset 4px 4px 8px #121417, 
-              inset -4px -4px 8px #22262b;
+  box-shadow: inset 4px 4px 8px #121417,
+    inset -4px -4px 8px #22262b;
 }

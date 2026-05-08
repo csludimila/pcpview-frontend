@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MachineService } from '../../services/machine';
 import { ProductionService } from '../../services/production';
-import { MachineModel, MachineStatus } from '../../models/machine.model'; // Importamos o tipo de Status
+import { MachineModel, MachineStatus } from '../../models/machine.model';
 import { ProductOrderModel, OrderStatus } from '../../models/ordem-producao';
 
 @Component({
@@ -16,7 +16,7 @@ import { ProductOrderModel, OrderStatus } from '../../models/ordem-producao';
 export class MachineListComponent implements OnInit {
   machines: MachineModel[] = [];
   orders: ProductOrderModel[] = [];
-  novaMaquinaNome: string = '';
+  novaMaquinaNome: string = ''; // Declarado apenas uma vez agora
   maquinaParaIniciar?: MachineModel;
 
   constructor(
@@ -28,11 +28,13 @@ export class MachineListComponent implements OnInit {
     this.carregarMaquinas();
     this.carregarOrdens();
 
-    // Atualização automática da fila de produção
+    // Atualização automática a cada 30 segundos
     setInterval(() => {
       this.carregarOrdens();
     }, 30000);
   }
+
+  // --- GERENCIAMENTO DE MÁQUINAS (API) ---
 
   carregarMaquinas() {
     this.machineService.listAll().subscribe(dados => {
@@ -40,97 +42,118 @@ export class MachineListComponent implements OnInit {
     });
   }
 
-  carregarOrdens() {
-    // 1. Primeiro, tentamos buscar o que você salvou no LocalStorage (Parte A)
-    const dadosLocalStorage = localStorage.getItem('minhas-ordens');
+  registrarMaquina(nome: string) {
+    if (!nome || nome.trim() === '') {
+      alert('Por favor, digite um nome para a máquina.');
+      return;
+    }
 
-    if (dadosLocalStorage) {
-      // Se existir algo no navegador, carregamos isso na tela
-      this.orders = JSON.parse(dadosLocalStorage);
-      console.log('Ordens carregadas do LocalStorage');
-    } else {
-      // 2. Se não houver nada no LocalStorage, usamos o serviço original
-      this.productionService.listarTodas().subscribe({
-        next: (dados) => {
-          this.orders = dados;
+    // No seu serviço, a função 'save' espera apenas a string do nome
+    this.machineService.save(nome).subscribe({
+      next: () => {
+        this.novaMaquinaNome = ''; // Limpa o campo de texto
+        this.carregarMaquinas();    // Recarrega a lista
+        alert('Máquina cadastrada com sucesso!');
+      },
+      error: (err: any) => {
+        console.error('Erro ao registrar', err);
+        alert('Erro ao cadastrar. Verifique se o Backend está rodando.');
+      }
+    });
+  }
+
+  deletar(id: string | undefined) {
+    if (id && confirm("Deseja realmente excluir esta máquina?")) {
+      this.machineService.delete(id).subscribe({
+        next: () => {
+          this.machines = this.machines.filter(m => m.id !== id);
+          alert("Máquina deletada!");
         },
-        error: (err) => {
-          console.error('Erro ao carregar ordens do serviço, e LocalStorage vazio.', err);
-        }
+        error: (err) => alert("Erro ao tentar deletar.")
       });
     }
   }
 
+  // --- LÓGICA DE STATUS E OPERAÇÃO ---
 
   pausar(maquina: MachineModel) {
     maquina.status = 'PAUSADO';
-    // Aqui você enviaria para o back-end se necessário:
-    // this.machineService.updateStatus(maquina.id, 'PAUSADO').subscribe();
   }
 
   manutencao(maquina: MachineModel) {
     if (maquina.id && confirm(`Colocar a ${maquina.nome} em MANUTENÇÃO?`)) {
-      // Chamamos o back-end. Se estava true, vira false (manutenção)
       this.machineService.toggleStatus(maquina.id).subscribe(() => {
         this.carregarMaquinas();
       });
     }
   }
 
-
   alterarStatusManual(maquina: MachineModel, novoStatus: MachineStatus) {
     maquina.status = novoStatus;
   }
 
-  // --- LÓGICA DE PRODUÇÃO ---
+  // --- LÓGICA DE PRODUÇÃO (ORDENS) ---
+
+  carregarOrdens() {
+    const dadosLocalStorage = localStorage.getItem('minhas-ordens');
+    if (dadosLocalStorage) {
+      this.orders = JSON.parse(dadosLocalStorage);
+    } else {
+      this.productionService.listarTodas().subscribe({
+        next: (dados) => { this.orders = dados; },
+        error: (err) => { console.error('Erro ao carregar ordens', err); }
+      });
+    }
+  }
 
   abrirSelecaoOF(maquina: MachineModel) {
     this.maquinaParaIniciar = maquina;
   }
 
-  vincularOrdem(ordem: ProductOrderModel) {
-    if (this.maquinaParaIniciar && this.maquinaParaIniciar.id) {
-      this.maquinaParaIniciar.status = 'TRABALHANDO';
-      this.maquinaParaIniciar.ofAtiva = ordem.ofGerada;
+  vincularOrdem(ofGerada: string) {
+    // 1. Validamos se uma máquina foi selecionada no painel
+    if (!this.maquinaParaIniciar) {
+      alert('Por favor, selecione uma máquina no painel primeiro!');
+      return;
+    }
 
-      ordem.status = OrderStatus.FABRICANDO;
+    const ordemCompleta = this.orders.find(o => o.ofGerada === ofGerada);
+
+    if (ordemCompleta && this.maquinaParaIniciar.id) {
+      
+      this.maquinaParaIniciar.status = 'TRABALHANDO';
+      this.maquinaParaIniciar.ofAtiva = ordemCompleta.ofGerada;
+
+      ordemCompleta.status = OrderStatus.FABRICANDO;
+
       localStorage.setItem('minhas-ordens', JSON.stringify(this.orders));
 
-      alert(`Sucesso! A máquina ${this.maquinaParaIniciar.nome} iniciou a OF ${ordem.ofGerada}`);
+      alert(`Sucesso! A máquina ${this.maquinaParaIniciar.nome} iniciou a OF ${ordemCompleta.ofGerada}`);
+    } else {
+      alert('Ordem de serviço não encontrada ou inválida.');
     }
   }
 
   abrirApontamento(maquina: MachineModel) {
     const qtdProd = prompt(`Quantas peças foram produzidas na ${maquina.nome}?`);
-
     if (qtdProd) {
-      // 1. PRIMEIRO buscamos a ordem usando o que ainda está na máquina
       const ordem = this.orders.find(o => o.ofGerada === maquina.ofAtiva);
-
       if (ordem) {
         ordem.status = OrderStatus.FINALIZADA;
-        console.log(`Ordem ${ordem.ofGerada} finalizada.`);
       }
-
-      // 2. DEPOIS limpamos a máquina
       maquina.status = 'DISPONIVEL';
       maquina.ofAtiva = '';
-
-      // 3. Salvamos o estado das ordens no navegador
       localStorage.setItem('minhas-ordens', JSON.stringify(this.orders));
-
       alert('Produção apontada com sucesso!');
     }
   }
 
-  // --- GERENCIAMENTO (SWAGGER/API) ---
+  // --- UTILITÁRIOS ---
 
   alterarStatus(id: string) {
     this.machineService.toggleStatus(id).subscribe({
       next: (maquinaAtualizada) => {
-        // EM VEZ DE: this.carregarMaquinas();
         this.atualizarMaquinaNaLista(maquinaAtualizada);
-        console.log(`Máquina atualizada com sucesso!`);
       },
       error: (err) => alert("Erro ao alterar status.")
     });
@@ -138,11 +161,9 @@ export class MachineListComponent implements OnInit {
 
   alterarNome(maquina: MachineModel) {
     const novoNome = prompt(`Digite o novo nome para a máquina ${maquina.nome}:`);
-
     if (maquina.id && novoNome && novoNome.trim() !== '') {
       this.machineService.updateName(maquina.id, novoNome).subscribe({
         next: (maquinaAtualizada) => {
-          // EM VEZ DE: this.carregarMaquinas();
           this.atualizarMaquinaNaLista(maquinaAtualizada);
           alert("Nome atualizado!");
         },
@@ -150,34 +171,14 @@ export class MachineListComponent implements OnInit {
       });
     }
   }
-  atualizarMaquinaNaLista(maquinaAtualizada: MachineModel) {
-    // Encontra a posição (índice) da máquina no seu array atual
-    const index = this.machines.findIndex(m => m.id === maquinaAtualizada.id);
 
+  atualizarMaquinaNaLista(maquinaAtualizada: MachineModel) {
+    const index = this.machines.findIndex(m => m.id === maquinaAtualizada.id);
     if (index !== -1) {
       this.machines[index] = {
         ...maquinaAtualizada,
         status: maquinaAtualizada.operacional ? 'DISPONIVEL' : 'MANUTENÇÃO'
       };
-    }
-  }
-
-  deletar(id: string | undefined) {
-    if (id && confirm("Deseja realmente excluir esta máquina?")) {
-      this.machineService.delete(id).subscribe({
-        next: () => {
-          // Filtra a lista atual para remover a máquina que acabamos de deletar
-          this.machines = this.machines.filter(m => m.id !== id);
-          alert("Máquina deletada com sucesso!");
-        },
-        error: (err) => {
-          if (err.status === 404) {
-            alert("A máquina não existe no banco de dados.");
-          } else {
-            alert("Erro ao tentar deletar a máquina.");
-          }
-        }
-      });
     }
   }
 }

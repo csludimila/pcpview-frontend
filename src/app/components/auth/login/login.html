@@ -2,7 +2,7 @@
   <div class="neo-card">
     <h2>PCPView Login</h2>
     
-    <!-- O [(ngModel)] cria o Two-Way Data Binding: o que digita aqui vai para o TS -->
+
     <input 
       type="email" 
       name="email"
@@ -16,7 +16,7 @@
       [(ngModel)]="credenciais.password" 
       placeholder="Senha" 
       class="neo-input"
-      (keyup.enter)="login()"> <!-- Atalho: apertar Enter também loga -->
+      (keyup.enter)="login()">
 
     <button (click)="login()" class="neo-button">Entrar</button>
   </div>
