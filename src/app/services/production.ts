@@ -3,14 +3,15 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ProductOrderModel } from '../models/ordem-producao';
 import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductionService {
   private http = inject(HttpClient);
-  
-  private readonly API = 'http://localhost:8080/ordens'; 
+
+  private readonly API = `${environment.apiUrl}/ordens`;
 
   // Função auxiliar para injetar o Token JWT nas requisições
   private getHeaders(): HttpHeaders {

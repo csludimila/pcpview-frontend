@@ -1,82 +1,47 @@
-import { Injectable } from '@angular/core';
-
-import { HttpClient } from '@angular/common/http';
-
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-
-// Interface base para tipar as respostas do Backend (conforme DTO do Swagger)
+import { environment } from '../../environments/environment'; // Importe do ambiente
 
 export interface ProductModel {
-
     id?: string;
-
     sku: string;
-
     nome: string;
-
 }
 
-
 @Injectable({
-
     providedIn: 'root'
-
 })
-
 export class ProductService {
+    private http = inject(HttpClient);
 
+    // Alterado para ler dinamicamente a URL do ambiente
+    private readonly API_PRODUCT = `${environment.apiUrl}/product`;
 
-    private readonly API_PRODUCT = 'http://localhost:8080/product';
-
-
-    constructor(private http: HttpClient) { }
-
-
-    // 1. Procura todos os produtos (GET /product)
+    private getHeaders(): HttpHeaders {
+        const token = localStorage.getItem('auth_token');
+        return new HttpHeaders({
+            'Authorization': `Bearer ${token}`
+        });
+    }
 
     listarTodos(): Observable<ProductModel[]> {
-
-        return this.http.get<ProductModel[]>(this.API_PRODUCT);
-
+        return this.http.get<ProductModel[]>(this.API_PRODUCT, { headers: this.getHeaders() });
     }
-
-
-    // 2. Cadastra um novo produto (POST /product)
 
     cadastrar(produto: ProductModel): Observable<ProductModel> {
-
-        return this.http.post<ProductModel>(this.API_PRODUCT, produto);
-
+        return this.http.post<ProductModel>(this.API_PRODUCT, produto, { headers: this.getHeaders() });
     }
-
-
-    // 3. Procura um produto pelo seu ID (GET /product/{id})
 
     buscarPorId(id: string): Observable<ProductModel> {
-
-        return this.http.get<ProductModel>(`${this.API_PRODUCT}/${id}`);
-
+        return this.http.get<ProductModel>(`${this.API_PRODUCT}/${id}`, { headers: this.getHeaders() });
     }
-
-
-    // 4. Atualiza o nome de um produto (PATCH /product/updateName/{id})
 
     atualizarNome(id: string, novoNome: string): Observable<ProductModel> {
-
-        return this.http.patch<ProductModel>(`${this.API_PRODUCT}/updateName/${id}`, { nome: novoNome });
-
+        return this.http.patch<ProductModel>(`${this.API_PRODUCT}/updateName/${id}`, { nome: novoNome }, { headers: this.getHeaders() });
     }
-
-
-    // 5. Deleta um produto pelo seu ID (DELETE /product/{id})
-
-
 
     deletar(id: string): Observable<void> {
-
-        return this.http.delete<void>(`${this.API_PRODUCT}/${id}`);
-
+        return this.http.delete<void>(`${this.API_PRODUCT}/${id}`, { headers: this.getHeaders() });
     }
-
-} 
+}
