@@ -2,7 +2,6 @@
   <div class="neo-card">
     <h2>PCPView Login</h2>
     
-
     <input 
       type="email" 
       name="email"
@@ -16,8 +15,8 @@
       [(ngModel)]="credenciais.password" 
       placeholder="Senha" 
       class="neo-input"
-      (keyup.enter)="login()">
+      (keyup.enter)="onLogin()">
 
-    <button (click)="login()" class="neo-button">Entrar</button>
+    <button (click)="onLogin()" class="neo-button">Entrar</button>
   </div>
 </div>

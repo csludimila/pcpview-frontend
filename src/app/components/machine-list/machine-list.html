@@ -13,9 +13,28 @@
 
   <div class="row g-4 px-3 mb-5">
     <div class="col-md-4 mb-4" *ngFor="let m of machines">
-      <div class="card card-maquina h-100"
-        [style.border-left]="m.status === 'TRABALHANDO' ? '4px solid #007bff' : '4px solid #28a745'">
+      <div class="card bg-dark text-white p-3 h-100 shadow-sm border-0"
+        [style.border-left]="m.operacional ? '4px solid #28a745' : '4px solid #dc3545'">
+
+        <div class="card-body p-2 d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="fw-bold m-0">{{ m.nome }}</h5>
+            <small [class]="m.operacional ? 'text-success' : 'text-danger'">
+              {{ m.operacional ? '● DISPONÍVEL' : '● EM MANUTENÇÃO' }}
+            </small>
+          </div>
+
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-warning text-white" (click)="alterarNome(m)">✏️</button>
+            <button class="btn btn-sm btn-outline-danger" (click)="deletar(m.id)">🗑️</button>
+          </div>
+        </div>
+
       </div>
+    </div>
+
+    <div class="col-12 text-center text-muted py-4" *ngIf="machines.length === 0">
+      Nenhuma máquina cadastrada no sistema. Use o botão "+ Add" acima.
     </div>
   </div>
   <hr class="border-secondary opacity-20 my-5">
@@ -34,11 +53,13 @@
         <label class="form-label small opacity-50">ORDEM DE SERVIÇO (LOTE)</label>
         <select class="form-control-neumorphic mb-4" #selOrdem>
           <option value="">-- LOTE --</option>
-          <option *ngFor="let o of orders" [value]="o.ofGerada">{{ o.ofGerada }} - {{ o.nome }}</option>
+          <option *ngFor="let o of orders" [value]="o?.numeroOrdem">
+            Lote: {{ o?.numeroOrdem }} - Status: {{ o?.status }}
+          </option>
         </select>
 
         <div class="of-ativa-display mb-4">
-          <p class="mb-1 small">PRODUTO: <span class="text-info">{{ maquinaParaIniciar?.ofAtiva || '-' }}</span></p>
+          <p class="mb-1 small">LOTE ATIVO: <span class="text-info">{{ maquinaParaIniciar?.ofAtiva || '-' }}</span></p>
           <p class="mb-0 small">STATUS ATUAL: <span class="text-success">0 / 0 USINADAS</span></p>
         </div>
 
@@ -64,4 +85,4 @@
       </div>
     </div>
   </div>
-</div> ```
+</div>

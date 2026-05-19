@@ -1,52 +1,47 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { MachineModel } from '../models/machine.model';
 
 @Injectable({
   providedIn: 'root'
 })
-
-// ... imports
-
 export class MachineService {
-  private readonly API = 'http://localhost:8080/machine';
+  private readonly API_MACHINE = 'http://localhost:8080/machine';
 
   constructor(private http: HttpClient) { }
 
-  listAll(): Observable<MachineModel[]> {
-    return this.http.get<MachineModel[]>(this.API).pipe(
-      map(machines => machines.map(m => ({
-        ...m,
-        
-        status: m.operacional ? 'DISPONIVEL' : 'MANUTENÇÃO'
-      })))
-    );
-  }
-
-  
-  save(nomeDaMaquina: string): Observable<MachineModel> {
-    return this.http.post<MachineModel>(this.API, {
-      nome: nomeDaMaquina
-      
+  // Função auxiliar para pegar o token salvo no login e gerar o cabeçalho
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`
     });
   }
 
-updateName(id: string, newName: string): Observable < MachineModel > { 
-  return this.http.patch<MachineModel>(`${this.API}/updateName/${id}`, { nome: newName });
-}
+  // GET /machine - Busca todas as máquinas do H2
+  listAll(): Observable<MachineModel[]> {
+    return this.http.get<MachineModel[]>(this.API_MACHINE, { headers: this.getHeaders() });
+  }
 
+  // POST /machine - Cadastra nova máquina passando apenas a string do nome
+  save(nome: string): Observable<MachineModel> {
+    const body = { nome: nome };
+    return this.http.post<MachineModel>(this.API_MACHINE, body, { headers: this.getHeaders() });
+  }
 
-toggleStatus(id: string): Observable < MachineModel > {
+  // DELETE /machine/{id} - Deleta do H2
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.API_MACHINE}/${id}`, { headers: this.getHeaders() });
+  }
 
-  return this.http.patch<MachineModel>(`${this.API}/toggleOperationalStatus/${id}`, {});
-}
+  // PATCH /machine/toggleOperationalStatus/{id} - Altera o status operacional (Manutenção)
+  toggleStatus(id: string): Observable<MachineModel> {
+    return this.http.patch<MachineModel>(`${this.API_MACHINE}/toggleOperationalStatus/${id}`, {}, { headers: this.getHeaders() });
+  }
 
-getById(id: string): Observable < MachineModel > {
-  return this.http.get<MachineModel>(`${this.API}/${id}`);
-}
-
-delete (id: string): Observable < any > {
-  return this.http.delete(`${this.API}/${id}`);
-}
+  // PATCH /machine/updateName/{id} - Altera o nome da máquina
+  updateName(id: string, novoNome: string): Observable<MachineModel> {
+    return this.http.patch<MachineModel>(`${this.API_MACHINE}/updateName/${id}?name=${novoNome}`, {}, { headers: this.getHeaders() });
+  }
 }

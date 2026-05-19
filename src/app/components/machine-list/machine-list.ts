@@ -94,59 +94,60 @@ export class MachineListComponent implements OnInit {
 
   // --- LÓGICA DE PRODUÇÃO (ORDENS) ---
 
+  // CORREÇÃO 1: Removemos a trava do localStorage para buscar SEMPRE do banco H2
   carregarOrdens() {
-    const dadosLocalStorage = localStorage.getItem('minhas-ordens');
-    if (dadosLocalStorage) {
-      this.orders = JSON.parse(dadosLocalStorage);
-    } else {
-      this.productionService.listarTodas().subscribe({
-        next: (dados) => { this.orders = dados; },
-        error: (err) => { console.error('Erro ao carregar ordens', err); }
-      });
-    }
+    this.productionService.listarTodas().subscribe({
+      next: (dados) => {
+        this.orders = dados;
+        console.log('Ordens carregadas com sucesso no frontend:', dados);
+      },
+      error: (err) => { console.error('Erro ao carregar ordens do H2', err); }
+    });
   }
 
   abrirSelecaoOF(maquina: MachineModel) {
     this.maquinaParaIniciar = maquina;
   }
 
-  vincularOrdem(ofGerada: string) {
-    // 1. Validamos se uma máquina foi selecionada no painel
+  vincularOrdem(numeroOrdem: string) {
     if (!this.maquinaParaIniciar) {
       alert('Por favor, selecione uma máquina no painel primeiro!');
       return;
     }
 
-    const ordemCompleta = this.orders.find(o => o.ofGerada === ofGerada);
+    if (!numeroOrdem || numeroOrdem.trim() === '') {
+      alert('Por favor, selecione um Lote válido!');
+      return;
+    }
+
+    // CORREÇÃO: Busca por o.numeroOrdem em vez de o.id
+    const ordemCompleta = this.orders.find(o => o.numeroOrdem === numeroOrdem);
 
     if (ordemCompleta && this.maquinaParaIniciar.id) {
-      
       this.maquinaParaIniciar.status = 'TRABALHANDO';
-      this.maquinaParaIniciar.ofAtiva = ordemCompleta.ofGerada;
+      this.maquinaParaIniciar.ofAtiva = ordemCompleta.numeroOrdem;
 
-      ordemCompleta.status = OrderStatus.FABRICANDO;
-
-      localStorage.setItem('minhas-ordens', JSON.stringify(this.orders));
-
-      alert(`Sucesso! A máquina ${this.maquinaParaIniciar.nome} iniciou a OF ${ordemCompleta.ofGerada}`);
+      alert(`Sucesso! A máquina ${this.maquinaParaIniciar.nome} iniciou a OP ${ordemCompleta.numeroOrdem}`);
     } else {
-      alert('Ordem de serviço não encontrada ou inválida.');
+      alert('Ordem de serviço não encontrada ou inválida no sistema.');
     }
   }
 
   abrirApontamento(maquina: MachineModel) {
     const qtdProd = prompt(`Quantas peças foram produzidas na ${maquina.nome}?`);
     if (qtdProd) {
-      const ordem = this.orders.find(o => o.ofGerada === maquina.ofAtiva);
+      // CORREÇÃO: Mudamos o 'o.id' para 'o.numeroOrdem'
+      const ordem = this.orders.find(o => o.numeroOrdem === maquina.ofAtiva);
+
       if (ordem) {
         ordem.status = OrderStatus.FINALIZADA;
       }
       maquina.status = 'DISPONIVEL';
       maquina.ofAtiva = '';
-      localStorage.setItem('minhas-ordens', JSON.stringify(this.orders));
       alert('Produção apontada com sucesso!');
     }
   }
+
 
   // --- UTILITÁRIOS ---
 
@@ -175,9 +176,10 @@ export class MachineListComponent implements OnInit {
   atualizarMaquinaNaLista(maquinaAtualizada: MachineModel) {
     const index = this.machines.findIndex(m => m.id === maquinaAtualizada.id);
     if (index !== -1) {
+      // Sincroniza o array local exatamente com o DTO do banco de dados
       this.machines[index] = {
         ...maquinaAtualizada,
-        status: maquinaAtualizada.operacional ? 'DISPONIVEL' : 'MANUTENÇÃO'
+        operacional: maquinaAtualizada.operacional
       };
     }
   }

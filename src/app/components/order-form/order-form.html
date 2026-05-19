@@ -1,43 +1,25 @@
-<div class="card-maquina p-4" style="max-width: 600px; margin: auto;">
+<<div class="card-maquina p-4" style="max-width: 600px; margin: auto;">
   <h5 class="fw-bold text-white mb-4">🏢 Planejamento (Nova OF)</h5>
 
   <div class="mb-3">
-    <label class="form-label text-uppercase small opacity-50">SKU do Produto (Base)</label>
-    <input type="text" class="form-control-neumorphic" [(ngModel)]="novaOF.sku" placeholder="Ex: 1000">
-  </div>
-
-  <div class="mb-3">
-    <label class="form-label text-uppercase small opacity-50">Nome do Produto</label>
-    <input type="text" class="form-control-neumorphic" [(ngModel)]="novaOF.nome" placeholder="Ex: EIXO PRINCIPAL">
+    <label class="form-label text-uppercase small opacity-50">Número da Ordem (OF / OP)</label>
+    <input type="text" class="form-control-neumorphic" [(ngModel)]="novaOF.numeroOrdem" placeholder="Ex: OP-2026-001">
   </div>
 
   <div class="mb-3">
     <label class="form-label text-uppercase small opacity-50">Qtd. Solicitada</label>
-    <input type="number" class="form-control-neumorphic" value="0">
+    <input type="number" class="form-control-neumorphic" [(ngModel)]="novaOF.quantidadeTotal" min="1">
   </div>
 
   <div class="mb-4">
     <label class="form-label text-uppercase small opacity-50">Máquina Ideal (Opcional)</label>
-    <select class="form-control-neumorphic">
+    <select class="form-control-neumorphic" [(ngModel)]="novaOF.maquinaId">
       <option value="">-- QUALQUER MÁQUINA --</option>
       <option *ngFor="let m of listaDeMaquinas" [value]="m.id">{{ m.nome }}</option>
     </select>
   </div>
 
-  <button class="btn btn-orange w-100 fw-bold py-3 mb-5" (click)="gerarProducao()">
+  <button class="btn btn-orange w-100 fw-bold py-3" (click)="gerarProducao()">
     Gerar Ordem de Serviço
   </button>
-
-  <hr class="opacity-10">
-
-  <div class="mt-4">
-    <label class="form-label text-uppercase small opacity-50">Excluir Ordem de Serviço</label>
-    <div class="d-flex gap-2">
-      <select class="form-control-neumorphic flex-grow-1" #selectDelete>
-        <option value="">-- EXCLUIR --</option>
-        <option *ngFor="let p of listaDeProdutos" [value]="p.id">{{ p.sku }} - {{ p.nome }}</option>
-      </select>
-      <button class="btn btn-danger px-4" (click)="deletarProduto(selectDelete.value)">Deletar</button>
-    </div>
-  </div>
 </div>

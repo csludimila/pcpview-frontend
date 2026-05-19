@@ -1,10 +1,15 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // 1. Pegamos o token que salvamos no localStorage durante o Login
+  // 1. CORREÇÃO: Se a rota for de login ou cadastro (/auth), ignora o token e passa direto
+  if (req.url.includes('/auth')) {
+    return next(req);
+  }
+
+  // 2. Pegamos o token do localStorage para as outras rotas (produtos, máquinas, etc)
   const token = localStorage.getItem('auth_token');
 
-  // 2. Se o token existir, "clonamos" a requisição e colocamos o crachá nela
+  // 3. Se o token existir, coloca o crachá de autorização na requisição
   if (token) {
     const cloned = req.clone({
       setHeaders: {
@@ -14,6 +19,5 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(cloned);
   }
 
-  // 3. Se não tiver token, a requisição segue normal (ex: para o próprio Login)
   return next(req);
 };

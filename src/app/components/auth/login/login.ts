@@ -12,31 +12,38 @@ import { AuthService } from '../../../services/auth.service';
   styleUrl: './login.css'
 })
 export class LoginComponent {
-  credenciais = { email: '', password: '' };
+
+  credenciais = {
+    email: '',
+    password: ''
+  };
 
   constructor(
-    private authService: AuthService,
+    private authService: AuthService, 
     private router: Router
-  ) { }
+  ) {}
 
+  onLogin(): void {
+    if (this.credenciais.email && this.credenciais.password) {
+      
+      this.authService.login(this.credenciais).subscribe({
+        // CORREÇÃO: Ajustado para a seta correta (=>)
+        next: (res: any) => {
+          this.authService.setToken(res.token);
+          console.log('Token recebido:', res.token);
+          
+          alert('Login efetuado com sucesso!');
+          this.router.navigate(['/escritorio']);
+        },
+        // CORREÇÃO: Ajustado para a seta correta (=>)
+        error: (err: any) => {
+          console.error('Erro no login:', err);
+          alert('Falha na autenticação. Verifique e-mail e senha.');
+        }
+      });
 
-  login() {
-    if (!this.credenciais.email || !this.credenciais.password) {
+    } else {
       alert('Por favor, preencha todos os campos.');
-      return;
     }
-
-    this.authService.login(this.credenciais).subscribe({
-      next: (res) => {
-        this.authService.setToken(res.token);
-        console.log('Token recebido:', res.token);
-        this.router.navigate(['/escritorio']);
-      },
-      error: (err) => {
-        console.error('Erro no login:', err);
-
-        alert('Falha na autenticação. Verifique seu e-mail e senha.');
-      }
-    });
   }
 }

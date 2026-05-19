@@ -1,13 +1,16 @@
-export enum OrderStatus {  // Verifique se o 'export' está aqui!
+export enum OrderStatus {
+  PLANEJADA = 'PLANEJADA',
   AGUARDANDO = 'AGUARDANDO',
   FABRICANDO = 'FABRICANDO',
-  PARADA = 'PARADA',
   FINALIZADA = 'FINALIZADA'
 }
+
 export interface ProductOrderModel {
-  id: string;  
-  sku: string;  
-  nome: string; 
-  status?: string;
-  ofGerada?: string;
+  
+  numeroOrdem: string; 
+  dataCriacao?: string;
+  quantidadeProduzida: number;
+  quantidadeTotal: number;
+  status: OrderStatus;
+  productId?: string;
 }
