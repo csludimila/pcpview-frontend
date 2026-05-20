@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://sua-api-production.com' // <-- Troque pela URL da nuvem quando tiver
+  apiUrl: 'http://localhost:8080' // <-- Mude para o seu localhost temporariamente
 };

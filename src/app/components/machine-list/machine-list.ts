@@ -120,12 +120,24 @@ export class MachineListComponent implements OnInit {
       return;
     }
 
-    // CORREÇÃO: Busca por o.numeroOrdem em vez de o.id
     const ordemCompleta = this.orders.find(o => o.numeroOrdem === numeroOrdem);
 
     if (ordemCompleta && this.maquinaParaIniciar.id) {
       this.maquinaParaIniciar.status = 'TRABALHANDO';
       this.maquinaParaIniciar.ofAtiva = ordemCompleta.numeroOrdem;
+
+      // 1. Atualiza o status localmente para refletir na tela imediatamente
+      ordemCompleta.status = OrderStatus.FABRICANDO;
+
+      // 2. INTEGRAÇÃO SWAGGER: Sincroniza a mudança de status com o Banco H2
+      this.productionService.atualizarNome(ordemCompleta.numeroOrdem, 'FABRICANDO').subscribe({
+        next: () => {
+          console.log(`Ordem ${ordemCompleta.numeroOrdem} atualizada para FABRICANDO no banco.`);
+        },
+        error: (err) => {
+          console.error('Erro ao sincronizar status da ordem com o backend:', err);
+        }
+      });
 
       alert(`Sucesso! A máquina ${this.maquinaParaIniciar.nome} iniciou a OP ${ordemCompleta.numeroOrdem}`);
     } else {
@@ -135,16 +147,35 @@ export class MachineListComponent implements OnInit {
 
   abrirApontamento(maquina: MachineModel) {
     const qtdProd = prompt(`Quantas peças foram produzidas na ${maquina.nome}?`);
-    if (qtdProd) {
-      // CORREÇÃO: Mudamos o 'o.id' para 'o.numeroOrdem'
+
+    // Valida se o operador digitou um valor e se é um número válido
+    if (qtdProd && !isNaN(Number(qtdProd))) {
       const ordem = this.orders.find(o => o.numeroOrdem === maquina.ofAtiva);
 
       if (ordem) {
+        // 1. Atualiza os dados localmente
+        ordem.quantidadeProduzida = Number(qtdProd);
         ordem.status = OrderStatus.FINALIZADA;
+
+        // 2. INTEGRAÇÃO SWAGGER: Envia o comando de encerramento para o Banco H2
+        this.productionService.atualizarNome(ordem.numeroOrdem, 'FINALIZADA').subscribe({
+          next: () => {
+            console.log(`Ordem ${ordem.numeroOrdem} encerrada com sucesso no banco.`);
+            alert(`Produção apontada com sucesso! ${qtdProd} peças usinadas.`);
+            this.carregarOrdens(); // Recarrega a lista para atualizar os contadores na tela
+          },
+          error: (err) => {
+            console.error('Erro ao salvar o apontamento no backend:', err);
+            alert('Erro ao salvar o apontamento no banco de dados.');
+          }
+        });
       }
+
+      // 3. Libera a máquina para a próxima operação
       maquina.status = 'DISPONIVEL';
       maquina.ofAtiva = '';
-      alert('Produção apontada com sucesso!');
+    } else if (qtdProd !== null) {
+      alert('Por favor, insira um valor numérico válido para a quantidade.');
     }
   }
 
