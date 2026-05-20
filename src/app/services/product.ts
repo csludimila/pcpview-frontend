@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment'; // Importe do ambiente
 
 export interface ProductModel {
     id?: string;
@@ -15,8 +14,8 @@ export interface ProductModel {
 export class ProductService {
     private http = inject(HttpClient);
 
-    // Alterado para ler dinamicamente a URL do ambiente
-    private readonly API_PRODUCT = `${environment.apiUrl}/product`;
+    // CONFIGURAÇÃO REVERTIDA: Voltando a URL fixa local direcionada para sua máquina
+    private readonly API_PRODUCT = 'http://localhost:8080/product';
 
     private getHeaders(): HttpHeaders {
         const token = localStorage.getItem('auth_token');
@@ -33,6 +32,7 @@ export class ProductService {
         return this.http.post<ProductModel>(this.API_PRODUCT, produto, { headers: this.getHeaders() });
     }
 
+    // MANTIDO COM SEGURANÇA: Busca o produto por ID passando os headers locais obrigatórios
     buscarPorId(id: string): Observable<ProductModel> {
         return this.http.get<ProductModel>(`${this.API_PRODUCT}/${id}`, { headers: this.getHeaders() });
     }

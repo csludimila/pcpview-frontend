@@ -18,6 +18,7 @@ export class LoginComponent {
     password: ''
   };
 
+  // CONSTRUTOR CORRIGIDO: Apenas com as injeções necessárias, sem variáveis perdidas
   constructor(
     private authService: AuthService, 
     private router: Router
@@ -27,7 +28,6 @@ export class LoginComponent {
     if (this.credenciais.email && this.credenciais.password) {
       
       this.authService.login(this.credenciais).subscribe({
-        // CORREÇÃO: Ajustado para a seta correta (=>)
         next: (res: any) => {
           this.authService.setToken(res.token);
           console.log('Token recebido:', res.token);
@@ -35,7 +35,6 @@ export class LoginComponent {
           alert('Login efetuado com sucesso!');
           this.router.navigate(['/escritorio']);
         },
-        // CORREÇÃO: Ajustado para a seta correta (=>)
         error: (err: any) => {
           console.error('Erro no login:', err);
           alert('Falha na autenticação. Verifique e-mail e senha.');

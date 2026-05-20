@@ -7,8 +7,10 @@ import { UserModel } from '../models/user.model';
   providedIn: 'root'
 })
 export class AuthService {
+  // A URL fixa local correta
   private readonly API = 'http://localhost:8080/auth';
 
+  // O construtor precisa declarar o 'private http' para que o 'this.http' passe a existir!
   constructor(private http: HttpClient) { }
 
   login(credenciais: any): Observable<{ token: string }> {
@@ -20,7 +22,6 @@ export class AuthService {
   }
 
   cadastrar(usuario: UserModel): Observable<any> {
-
     return this.http.post(`${this.API}`, usuario);
   }
 

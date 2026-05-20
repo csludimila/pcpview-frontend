@@ -2,7 +2,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MachineModel } from '../models/machine.model';
-import { environment } from '../../environments/environment'; // Importe do ambiente
 
 @Injectable({
   providedIn: 'root'
@@ -10,8 +9,8 @@ import { environment } from '../../environments/environment'; // Importe do ambi
 export class MachineService {
   private http = inject(HttpClient);
 
-  // Alterado para ler dinamicamente a URL do ambiente
-  private readonly API = `${environment.apiUrl}/machines`; // Ajuste para o nome exato da sua rota de máquinas no Java se necessário
+  // CONFIGURAÇÃO REVERTIDA: Voltando a URL fixa local direcionada para sua máquina
+  private readonly API = 'http://localhost:8080/machines';
 
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('auth_token');

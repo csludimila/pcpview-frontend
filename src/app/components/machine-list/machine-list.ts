@@ -16,9 +16,10 @@ import { ProductOrderModel, OrderStatus } from '../../models/ordem-producao';
 export class MachineListComponent implements OnInit {
   machines: MachineModel[] = [];
   orders: ProductOrderModel[] = [];
-  novaMaquinaNome: string = ''; // Declarado apenas uma vez agora
+  novaMaquinaNome: string = ''; 
   maquinaParaIniciar?: MachineModel;
 
+  // CONSTRUTOR CORRIGIDO: Injeções limpas e prontas para o ambiente local
   constructor(
     private machineService: MachineService,
     private productionService: ProductionService
@@ -28,13 +29,13 @@ export class MachineListComponent implements OnInit {
     this.carregarMaquinas();
     this.carregarOrdens();
 
-    // Atualização automática a cada 30 segundos
+    // Atualização automática a cada 30 segundos do banco H2 local
     setInterval(() => {
       this.carregarOrdens();
     }, 30000);
   }
 
-  // --- GERENCIAMENTO DE MÁQUINAS (API) ---
+  // --- GERENCIAMENTO DE MÁQUINAS (API LOCAL) ---
 
   carregarMaquinas() {
     this.machineService.listAll().subscribe(dados => {
@@ -48,16 +49,15 @@ export class MachineListComponent implements OnInit {
       return;
     }
 
-    // No seu serviço, a função 'save' espera apenas a string do nome
     this.machineService.save(nome).subscribe({
       next: () => {
-        this.novaMaquinaNome = ''; // Limpa o campo de texto
-        this.carregarMaquinas();    // Recarrega a lista
+        this.novaMaquinaNome = ''; 
+        this.carregarMaquinas();    
         alert('Máquina cadastrada com sucesso!');
       },
       error: (err: any) => {
         console.error('Erro ao registrar', err);
-        alert('Erro ao cadastrar. Verifique se o Backend está rodando.');
+        alert('Erro ao cadastrar. Verifique se o Backend está rodando localmente.');
       }
     });
   }
@@ -92,9 +92,8 @@ export class MachineListComponent implements OnInit {
     maquina.status = novoStatus;
   }
 
-  // --- LÓGICA DE PRODUÇÃO (ORDENS) ---
+  // --- LÓGICA DE PRODUÇÃO (ORDENS LOCAL) ---
 
-  // CORREÇÃO 1: Removemos a trava do localStorage para buscar SEMPRE do banco H2
   carregarOrdens() {
     this.productionService.listarTodas().subscribe({
       next: (dados) => {
@@ -126,10 +125,9 @@ export class MachineListComponent implements OnInit {
       this.maquinaParaIniciar.status = 'TRABALHANDO';
       this.maquinaParaIniciar.ofAtiva = ordemCompleta.numeroOrdem;
 
-      // 1. Atualiza o status localmente para refletir na tela imediatamente
       ordemCompleta.status = OrderStatus.FABRICANDO;
 
-      // 2. INTEGRAÇÃO SWAGGER: Sincroniza a mudança de status com o Banco H2
+      // Sincroniza passando o payload de texto para { nome: novoNome } no H2 Local
       this.productionService.atualizarNome(ordemCompleta.numeroOrdem, 'FABRICANDO').subscribe({
         next: () => {
           console.log(`Ordem ${ordemCompleta.numeroOrdem} atualizada para FABRICANDO no banco.`);
@@ -148,21 +146,19 @@ export class MachineListComponent implements OnInit {
   abrirApontamento(maquina: MachineModel) {
     const qtdProd = prompt(`Quantas peças foram produzidas na ${maquina.nome}?`);
 
-    // Valida se o operador digitou um valor e se é um número válido
     if (qtdProd && !isNaN(Number(qtdProd))) {
       const ordem = this.orders.find(o => o.numeroOrdem === maquina.ofAtiva);
 
       if (ordem) {
-        // 1. Atualiza os dados localmente
         ordem.quantidadeProduzida = Number(qtdProd);
         ordem.status = OrderStatus.FINALIZADA;
 
-        // 2. INTEGRAÇÃO SWAGGER: Envia o comando de encerramento para o Banco H2
+        // Envia o encerramento em modo local perfeitamente
         this.productionService.atualizarNome(ordem.numeroOrdem, 'FINALIZADA').subscribe({
           next: () => {
             console.log(`Ordem ${ordem.numeroOrdem} encerrada com sucesso no banco.`);
             alert(`Produção apontada com sucesso! ${qtdProd} peças usinadas.`);
-            this.carregarOrdens(); // Recarrega a lista para atualizar os contadores na tela
+            this.carregarOrdens(); 
           },
           error: (err) => {
             console.error('Erro ao salvar o apontamento no backend:', err);
@@ -171,14 +167,12 @@ export class MachineListComponent implements OnInit {
         });
       }
 
-      // 3. Libera a máquina para a próxima operação
       maquina.status = 'DISPONIVEL';
       maquina.ofAtiva = '';
     } else if (qtdProd !== null) {
       alert('Por favor, insira um valor numérico válido para a quantidade.');
     }
   }
-
 
   // --- UTILITÁRIOS ---
 
@@ -197,7 +191,7 @@ export class MachineListComponent implements OnInit {
       this.machineService.updateName(maquina.id, novoNome).subscribe({
         next: (maquinaAtualizada) => {
           this.atualizarMaquinaNaLista(maquinaAtualizada);
-          alert("Nome atualizado!");
+          alert("Nome updated!");
         },
         error: (err) => alert("Erro ao atualizar nome.")
       });
@@ -207,7 +201,6 @@ export class MachineListComponent implements OnInit {
   atualizarMaquinaNaLista(maquinaAtualizada: MachineModel) {
     const index = this.machines.findIndex(m => m.id === maquinaAtualizada.id);
     if (index !== -1) {
-      // Sincroniza o array local exatamente com o DTO do banco de dados
       this.machines[index] = {
         ...maquinaAtualizada,
         operacional: maquinaAtualizada.operacional
