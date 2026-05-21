@@ -1,52 +1,78 @@
-<div class="container mt-4">
-  <div class="card border-0 shadow bg-dark text-white">
-    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center p-3">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-gear-fill fs-2 me-3 animate-spin"></i>
-        <h2 class="m-0 text-uppercase fw-bold">IHM - Controle de Operação</h2>
-      </div>
+<div class="control-panels op-page">
+    <div class="panel ihm-operacao">
+        <div class="op-header">
+            <span class="op-icon">OP</span>
+            <h3>IHM Operação</h3>
+        </div>
+        
+        <form [formGroup]="opForm">
+            <div class="form-group">
+                <label>MÁQUINA EM USO</label>
+                <select formControlName="idMaquina" (change)="verificarStatusMaquina()">
+                    <option value="" disabled selected>Selecione a máquina</option>
+                    <option *ngFor="let maq of listaDeMaquinas" [value]="maq.id">{{ maq.nome }}</option>
+                </select>
+                
+                <div *ngIf="maquinaSelecionada" class="machine-state-row">
+                    <span class="badge" [ngClass]="classeStatusMaquinaSelecionada">
+                        {{ textoStatusMaquinaSelecionada }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>ORDEM DE SERVIÇO (LOTE)</label>
+                <select formControlName="idEtapaSubOrdem">
+                    <option value="" disabled selected>Selecione a sub-ordem</option>
+                    <option *ngFor="let ord of ordensDisponiveisParaMaquina" [value]="ord.codigoEtapa">
+                        {{ textoOpcaoOrdem(ord) }}
+                    </option>
+                </select>
+                <div class="queue-hint">{{ resumoFilaSelecionada }}</div>
+            </div>
+
+            <div *ngIf="proximaOrdemDaFila" class="next-queue-strip">
+                <span>Próxima da fila</span>
+                <strong>{{ proximaOrdemDaFila.codigoEtapa }}</strong>
+                <em>{{ proximaOrdemDaFila.quantidadeProduzida || 0 }} / {{ proximaOrdemDaFila.quantidadeTotal }} peças</em>
+            </div>
+
+            <div *ngIf="avisoOrdemForaDaFila" class="queue-warning">
+                {{ avisoOrdemForaDaFila }}
+            </div>
+
+            <div id="ihm-display-info" class="of-ativa-text">
+                <p>PRODUTO: <span>{{ subOrdemSelecionada?.codigoEtapa || '-' }}</span></p>
+                <p>STATUS ATUAL: <span class="status-ok">{{ saldoSelecionado }}</span></p>
+                <p>EXECUÇÃO: <span>{{ execucaoAtual?.id || '-' }}</span></p>
+                <p>STATUS: <span class="status-ok">{{ statusExecucaoAtual }}</span></p>
+                <p>TEMPO PRODUTIVO: <span>{{ formatarDuracao(execucaoAtual?.tempoProdutivoSegundos) }}</span></p>
+                <p>SETUP 1ª PEÇA: <span class="status-setup">{{ formatarDuracao(execucaoAtual?.tempoSetupSegundos) }}</span></p>
+            </div>
+
+            <label class="setup-toggle">
+                <input type="checkbox" formControlName="setupPrimeiraPeca">
+                Setup da primeira peça
+            </label>
+
+            <div class="action-buttons">
+                <button type="button" class="btn btn-green" (click)="onIniciar()" [disabled]="!opForm.valid || !maquinaPodeIniciar">▶ Iniciar</button>
+                <button type="button" class="btn btn-yellow" (click)="onPausar()">⏸ Pausa</button>
+                <button type="button" class="btn btn-blue" (click)="onRetomar()">▶ Retomar</button>
+                <button type="button" class="btn btn-orange" (click)="onFinalizarSetup()">Setup OK</button>
+                <button type="button" class="btn btn-red action-btn-full" (click)="onManutencao()">⚠ Quebra de Lote</button>
+            </div>
+
+            <hr class="op-divider">
+
+            <div class="apontamento-area">
+                <input type="number" formControlName="quantidadeProduzida" min="1" placeholder="Qtd">
+                <button type="button" class="btn btn-orange" (click)="onFinalizar()">✅ Apontar Produção / Finalizar</button>
+            </div>
+
+            <div *ngIf="mensagemFeedback" class="alert-banner op-alert">
+                {{ mensagemFeedback }}
+            </div>
+        </form>
     </div>
-
-    <div class="card-body p-4">
-      <form [formGroup]="opForm">
-
-        <div class="input-group mb-3">
-          <span class="input-group-text bg-secondary text-white custom-label">Máquina</span>
-          <select class="form-select" formControlName="idMaquina">
-            <option value="">-- SELECIONE A MÁQUINA --</option>
-            <option *ngFor="let m of listaDeMaquinas" [value]="m.id">{{ m.nome }}</option>
-          </select>
-        </div>
-        <div class="input-group mb-4">
-          <span class="input-group-text bg-secondary text-white custom-label">Ordem (Lote)</span>
-          <select class="form-select" formControlName="idEtapaSubOrdem">
-            <option value="">-- SELECIONE O LOTE DISPONÍVEL --</option>
-            <option *ngFor="let o of listaDeOrdens" [value]="o.id">
-              Lote: {{ o.subOrdemId }} - Status: {{ o.status }}
-            </option>
-          </select>
-        </div>
-
-        <div class="row g-2">
-          <div class="col-md-4">
-            <button type="button" class="btn btn-success btn-lg w-100 py-3 fw-bold" (click)="onIniciar()">
-              ▶ INICIAR
-            </button>
-          </div>
-
-          <div class="col-md-4">
-            <button type="button" class="btn btn-warning btn-lg w-100 py-3 fw-bold text-white" (click)="onFinalizar()">
-              ⏹ FINALIZAR
-            </button>
-          </div>
-
-          <div class="col-md-4">
-            <button type="button" class="btn btn-danger btn-lg w-100 py-3 fw-bold" (click)="onManutencao()">
-              ⚠️ MANUTENÇÃO
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>

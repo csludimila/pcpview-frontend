@@ -1,118 +1,65 @@
-.container-fluid {
-  background-color: #1a1d21;
-  /* Fundo idêntico ao da Fábrica */
-  min-height: 100vh;
-  padding: 40px;
-  color: #fff;
+.planning-page {
+    padding: 20px;
 }
 
-/* Card do Formulário */
-.card-neumorphic {
-  background: #1a1d21 !important;
-  border: none !important;
-  border-radius: 30px !important;
-  box-shadow: 10px 10px 20px #121417,
-    -10px -10px 20px #22262b;
-  padding: 30px;
+.planning-shell {
+    max-width: 600px;
+    margin: 0 auto;
 }
 
+.planning-panel {
+    border-radius: 16px;
+}
 
-.card-neumorphic {
+.planning-header {
     display: flex;
-    flex-direction: column;
-    gap: 20px; /* Cria o espaçamento entre os campos do print */
-    max-width: 550px; /* Largura aproximada do seu modelo */
-    margin: 0 auto; /* Centraliza o card na tela */
+    align-items: center;
+    gap: 12px;
+    font-size: 1.2em;
 }
 
-/* Garante que cada bloco (Label + Input) ocupe a largura total */
-.card-neumorphic div.mb-3, 
-.card-neumorphic div.mb-4 {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
+.planning-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    box-shadow: inset 3px 3px 7px var(--shadow-dark), inset -3px -3px 7px var(--shadow-light);
+    color: var(--accent);
+    font-size: 0.75em;
+    font-weight: 900;
 }
 
-/* Ajuste nos inputs para preencherem o card horizontalmente */
-.form-control-neumorphic {
-    width: 100% !important;
+.queue-hint {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 0.82em;
 }
 
-
-/* Estilização dos Inputs (Efeito Afundado) */
-.form-control-neumorphic {
-  background: #1a1d21 !important;
-  border: none !important;
-  border-radius: 15px !important;
-  color: #00d4ff !important;
-  /* Texto em azul neon para contraste */
-  padding: 15px !important;
-  /* Sombra interna para o efeito côncavo */
-  box-shadow: inset 6px 6px 12px #121417,
-    inset -6px -6px 12px #22262b !important;
-  transition: all 0.3s ease;
+.field-warning {
+    margin-top: 8px;
+    color: var(--status-pause);
+    font-size: 0.82em;
+    font-weight: 800;
 }
 
-.form-control-neumorphic:focus {
-  outline: none;
-  box-shadow: inset 2px 2px 5px #121417,
-    inset -2px -2px 5px #22262b,
-    0 0 8px rgba(0, 212, 255, 0.2) !important;
+.panel-divider {
+    border: 0;
+    border-top: 1px solid var(--panel-border);
+    margin: 25px 0;
 }
 
-/* Labels */
-.form-label {
-  color: #adb5bd;
-  font-size: 0.85rem;
-  margin-left: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.delete-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
 }
 
-/* Botão Laranja */
-.btn-orange {
-  background-color: #f36c21;
-  /* Cor extraída do print */
-  color: white;
-  border: none;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.btn-orange:hover {
-  background-color: #d95a1a;
-  transform: translateY(-1px);
-}
-
-/* Estilo do Dropdown (Select) */
-select.form-control-neumorphic {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-}
-
-/* Botão de Enviar (Igual ao da Fábrica) */
-.btn-neumorphic {
-  background: #1a1d21;
-  border: none;
-  border-radius: 15px;
-  color: #00d4ff;
-  font-weight: bold;
-  padding: 15px 30px;
-  box-shadow: 6px 6px 12px #121417,
-    -6px -6px 12px #22262b;
-  transition: all 0.2s ease;
-}
-
-.btn-neumorphic:hover {
-  box-shadow: 3px 3px 6px #121417,
-    -3px -3px 6px #22262b;
-  transform: scale(0.98);
-}
-
-.btn-neumorphic:active {
-  box-shadow: inset 4px 4px 8px #121417,
-    inset -4px -4px 8px #22262b;
+@media (max-width: 640px) {
+    .delete-row {
+        grid-template-columns: 1fr;
+    }
 }

@@ -1,0 +1,148 @@
+<div class="container-tracking tracking-page">
+    
+    <div class="tracking-summary">
+        <button class="summary-card" [class.active]="abaAtiva === 'aguardando'" (click)="mudarAba('aguardando')">
+            <strong>Aguardando</strong>
+        </button>
+
+        <button class="summary-card production" [class.active]="abaAtiva === 'producao'" (click)="mudarAba('producao')">
+            <strong>Em Produção</strong>
+        </button>
+
+        <button class="summary-card done" [class.active]="abaAtiva === 'finalizadas'" (click)="mudarAba('finalizadas')">
+            <strong>Finalizadas</strong>
+        </button>
+    </div>
+
+    <div class="tracking-search">
+        <input
+          type="search"
+          placeholder="PESQUISAR OF, LOTE OU PRODUTO"
+          [(ngModel)]="termoPesquisa"
+          aria-label="Pesquisar ordem de fabricação">
+        <button type="button" class="btn btn-blue" *ngIf="temPesquisa()" (click)="termoPesquisa = ''">
+            Limpar
+        </button>
+    </div>
+
+    <div *ngIf="isCarregando" class="tracking-loading">
+        A sincronizar com o banco de dados...
+    </div>
+
+    <div class="panel" *ngIf="abaAtiva === 'aguardando' && !isCarregando">
+        <div class="panel-header tracking-panel-title waiting">
+            Ordens Aguardando Início
+        </div>
+        
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nº ORDEM / LOTE</th>
+                        <th>PRODUTO</th>
+                        <th>MÁQUINA IDEAL</th>
+                        <th>FILA</th>
+                        <th>QUANTIDADE</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngIf="ordensAguardandoFiltradas.length === 0">
+                        <td colspan="6" class="empty-cell">Nenhuma ordem encontrada.</td>
+                    </tr>
+                    <tr *ngFor="let ordem of ordensAguardandoFiltradas">
+                        <td class="lot-cell">{{ codigoLote(ordem) }}</td>
+                        <td>{{ produtoOrdem(ordem) }}</td>
+                        <td class="text-blue">{{ maquinaIdeal(ordem) }}</td>
+                        <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
+                        <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
+                        <td><span class="status-badge status-aguardando">AGUARDANDO</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel" *ngIf="abaAtiva === 'producao' && !isCarregando">
+        <div class="panel-header tracking-panel-title production">
+            Produção em Andamento
+        </div>
+        
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nº ORDEM / LOTE</th>
+                        <th>PRODUTO</th>
+                        <th>MÁQUINA</th>
+                        <th>FILA</th>
+                        <th>QUANTIDADE</th>
+                        <th>INÍCIO</th>
+                        <th>TEMPO</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngIf="ordensProducaoFiltradas.length === 0">
+                        <td colspan="8" class="empty-cell">Nenhuma ordem encontrada.</td>
+                    </tr>
+                    <tr *ngFor="let ordem of ordensProducaoFiltradas">
+                        <td class="lot-cell">{{ codigoLote(ordem) }}</td>
+                        <td>{{ produtoOrdem(ordem) }}</td>
+                        <td class="text-blue">{{ maquinaIdeal(ordem) }}</td>
+                        <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
+                        <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
+                        <td>{{ formatarData(ordem.dataInicio) }}</td>
+                        <td>{{ formatarDuracao(ordem.tempoProdutivoSegundos) }}</td>
+                        <td><span class="status-badge status-producao">PRODUZINDO</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel" *ngIf="abaAtiva === 'finalizadas' && !isCarregando">
+        <div class="panel-header tracking-panel-title done">
+            Serviços Finalizados
+        </div>
+        
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nº ORDEM / LOTE</th>
+                        <th>PRODUTO</th>
+                        <th>QUANTIDADE</th>
+                        <th>INÍCIO</th>
+                        <th>FIM</th>
+                        <th>TOTAL PROD.</th>
+                        <th>SETUP 1ª PEÇA</th>
+                        <th>RESTANTE LOTE</th>
+                        <th>MÉDIA/PEÇA</th>
+                        <th>MÉDIA RESTANTE</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngIf="ordensFinalizadasFiltradas.length === 0">
+                        <td colspan="11" class="empty-cell">Nenhum serviço encontrado.</td>
+                    </tr>
+                    <tr *ngFor="let ordem of ordensFinalizadasFiltradas">
+                        <td class="lot-cell">{{ ordem.numeroOrdem }}</td>
+                        <td>{{ produtoOrdem(ordem) }}</td>
+                        <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
+                        <td>{{ formatarData(ordem.dataInicio) }}</td>
+                        <td>{{ formatarData(ordem.dataFim) }}</td>
+                        <td>{{ formatarDuracao(ordem.tempoProdutivoSegundos) }}</td>
+                        <td class="setup-cell">{{ formatarDuracao(ordem.tempoSetupSegundos) }}</td>
+                        <td>{{ formatarDuracao(ordem.tempoRestanteLoteSegundos) }}</td>
+                        <td>{{ formatarDuracao(ordem.tempoMedioPorPecaSegundos) }}</td>
+                        <td>{{ formatarDuracao(ordem.tempoMedioRestanteSegundos) }}</td>
+                        <td><span class="status-badge status-finalizado">FINALIZADO</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

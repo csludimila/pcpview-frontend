@@ -1,39 +1,28 @@
-<div class="form-container">
-  <h2 class="title">Novo Usuário</h2>
-
-  <div class="input-group">
-    <label>Nome de Usuário</label>
-    <input type="text" 
-           [(ngModel)]="novoUsuario.userName" 
-           placeholder="Ex: ludimila_dev"
-           class="neo-input">
-  </div>
-
-  <div class="input-group">
-    <label>E-mail</label>
-    <input type="email" 
-           [(ngModel)]="novoUsuario.email" 
-           placeholder="exemplo@email.com"
-           class="neo-input">
-  </div>
-
-  <div class="input-group">
-    <label>Senha</label>
-    <input type="password" 
-           [(ngModel)]="novoUsuario.password" 
-           placeholder="Digite sua senha"
-           class="neo-input">
-  </div>
-
-  <div class="input-group">
-    <label>Perfil de Acesso</label>
-    <select [(ngModel)]="novoUsuario.role" class="neo-input">
-      <option value="USER">Operador (Fábrica)</option>
-      <option value="ADMIN">Administrador (Escritório)</option>
-    </select>
-  </div>
-
-  <button (click)="executarCadastro()" class="neo-button primary">
-    🚀 Finalizar Cadastro
-  </button>
+<div class="panel" style="max-width: 500px; margin: 50px auto;">
+    <h3>👥 Cadastrar Colaborador</h3>
+    
+    <div class="form-group">
+        <label>TIPO DE ACESSO</label>
+        <select [(ngModel)]="novoUsuario.role">
+            <option value="USER">OPERADOR (CHÃO DE FÁBRICA)</option>
+            <option value="ADMIN">ADMINISTRADOR (ESCRITÓRIO)</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label>NOME COMPLETO</label>
+        <input type="text" [(ngModel)]="novoUsuario.userName" placeholder="NOME DO COLABORADOR">
+    </div>
+    
+    <div class="form-group">
+        <label>E-MAIL</label>
+        <input type="text" [(ngModel)]="novoUsuario.email" placeholder="E-mail de acesso">
+    </div>
+    
+    <div class="form-group">
+        <label>SENHA</label>
+        <input type="password" [(ngModel)]="novoUsuario.password" placeholder="******">
+    </div>
+    
+    <button class="btn btn-full btn-blue" (click)="executarCadastro()">Confirmar Cadastro</button>
 </div>

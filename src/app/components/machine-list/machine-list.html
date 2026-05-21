@@ -1,88 +1,111 @@
-<div class="container-fluid">
-  <header class="d-flex justify-content-between align-items-center mb-5 px-4 pt-4">
-    <h2 class="fw-bold text-white m-0">Status das Máquinas</h2>
-    <div class="d-flex gap-2 align-items-center">
-      <input type="text" [(ngModel)]="novaMaquinaNome" class="form-control-neumorphic py-2 px-3"
-        placeholder="NOME DA MÁQUINA" style="max-width: 250px;">
-      <button class="btn btn-primary fw-bold px-4" (click)="registrarMaquina(novaMaquinaNome)"
-        style="border-radius: 8px; background-color: #007bff;">
-        + Add
-      </button>
-    </div>
-  </header>
+<div class="machine-page">
+  <div class="machine-page-header">
+      <h2>Status das Máquinas</h2>
 
-  <div class="row g-4 px-3 mb-5">
-    <div class="col-md-4 mb-4" *ngFor="let m of machines">
-      <div class="card bg-dark text-white p-3 h-100 shadow-sm border-0"
-        [style.border-left]="m.operacional ? '4px solid #28a745' : '4px solid #dc3545'">
-
-        <div class="card-body p-2 d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="fw-bold m-0">{{ m.nome }}</h5>
-            <small [class]="m.operacional ? 'text-success' : 'text-danger'">
-              {{ m.operacional ? '● DISPONÍVEL' : '● EM MANUTENÇÃO' }}
-            </small>
-          </div>
-
-          <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-warning text-white" (click)="alterarNome(m)">✏️</button>
-            <button class="btn btn-sm btn-outline-danger" (click)="deletar(m.id)">🗑️</button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="col-12 text-center text-muted py-4" *ngIf="machines.length === 0">
-      Nenhuma máquina cadastrada no sistema. Use o botão "+ Add" acima.
-    </div>
-  </div>
-  <hr class="border-secondary opacity-20 my-5">
-
-  <div class="row justify-content-center pb-5">
-    <div class="col-lg-6">
-      <div class="card card-maquina p-4">
-        <h5 class="fw-bold text-white mb-4">⚙️ IHM Operação</h5>
-
-        <label class="form-label small opacity-50">MÁQUINA EM USO</label>
-        <select class="form-control-neumorphic mb-3" [(ngModel)]="maquinaParaIniciar">
-          <option [ngValue]="undefined">-- MÁQUINA --</option>
-          <option *ngFor="let m of machines" [ngValue]="m">{{ m.nome }}</option>
-        </select>
-
-        <label class="form-label small opacity-50">ORDEM DE SERVIÇO (LOTE)</label>
-        <select class="form-control-neumorphic mb-4" #selOrdem>
-          <option value="">-- LOTE --</option>
-          <option *ngFor="let o of orders" [value]="o?.numeroOrdem">
-            Lote: {{ o?.numeroOrdem }} - Status: {{ o?.status }}
-          </option>
-        </select>
-
-        <div class="of-ativa-display mb-4">
-          <p class="mb-1 small">LOTE ATIVO: <span class="text-info">{{ maquinaParaIniciar?.ofAtiva || '-' }}</span></p>
-          <p class="mb-0 small">STATUS ATUAL: <span class="text-success">0 / 0 USINADAS</span></p>
-        </div>
-
-        <div class="row g-2 mb-3">
-          <div class="col-6">
-            <button class="btn btn-modelo btn-start w-100" (click)="vincularOrdem(selOrdem.value)">▶ Iniciar</button>
-          </div>
-          <div class="col-6">
-            <button class="btn btn-modelo btn-pause w-100">⏸ Pausa</button>
-          </div>
-          <div class="col-12">
-            <button class="btn btn-modelo btn-maintenance w-100" (click)="manutencao(maquinaParaIniciar!)">⚠️
-              Manutenção</button>
-          </div>
-        </div>
-
-        <div class="d-flex gap-2">
-          <input type="number" class="form-control-neumorphic text-center" style="width: 80px;" value="0">
-          <button class="btn btn-modelo btn-finish flex-grow-1 fw-bold" (click)="abrirApontamento(maquinaParaIniciar!)">
-            Apontar / Finalizar
+      <div class="add-machine-area" *ngIf="isAdmin">
+          <input
+            type="text"
+            class="search-bar"
+            placeholder="NOME DA NOVA MÁQUINA"
+            [(ngModel)]="novaMaquinaNome"
+            (keyup.enter)="adicionarMaquina()">
+          <button class="btn btn-blue" (click)="adicionarMaquina()" [disabled]="isCarregando">
+              + Add
           </button>
-        </div>
       </div>
-    </div>
+  </div>
+
+  <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-bottom: 20px;">
+      {{ mensagemFeedback }}
+  </div>
+
+  <div *ngIf="itensSemMaquina.length > 0" class="panel sem-maquina-panel">
+          <div class="queue-panel-header">
+              <div>
+                  <h3>OFs sem máquina definida</h3>
+              <span>{{ itensSemMaquina.length }} OFs aguardando direcionamento</span>
+          </div>
+      </div>
+      <div class="queue-list">
+          <div class="queue-item" *ngFor="let item of itensSemMaquina">
+              <div>
+                  <strong>{{ item.codigoEtapa }}</strong>
+                  <span>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</span>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <div *ngIf="maquinas.length === 0 && !isCarregando" class="empty-message">
+      Nenhuma máquina cadastrada. Adicione uma acima.
+  </div>
+
+  <div *ngIf="isCarregando" class="empty-message" style="color: var(--accent);">
+      Comunicando com o servidor...
+  </div>
+
+  <div class="machine-grid" *ngIf="maquinas.length > 0">
+      <div class="machine-card" *ngFor="let maq of maquinas">
+          <button *ngIf="isAdmin" class="delete-btn" title="Excluir máquina" (click)="excluirMaquina(maq.id)">×</button>
+
+          <div class="machine-title-row">
+              <h3>{{ maq.nome }}</h3>
+              <span class="queue-counter">{{ filaDaMaquina(maq.id).length }} OFs</span>
+          </div>
+
+          <div class="status-area">
+              <span class="status-label">Status: </span>
+              <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
+              <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
+          </div>
+
+          <button *ngIf="isAdmin" class="btn-toggle-status" (click)="alternarStatus(maq.id)">
+              {{ maq.operacional ? 'Enviar para Manutenção' : 'Liberar Máquina' }}
+          </button>
+
+          <div class="queue-section">
+              <div class="queue-section-title">
+                  <h4>Fila de Produção</h4>
+                  <span>{{ filaDaMaquina(maq.id).length }} OFs</span>
+              </div>
+
+              <div class="queue-list" *ngIf="filaDaMaquina(maq.id).length > 0; else filaVazia">
+                  <div
+                    class="queue-item"
+                    *ngFor="let item of filaDaMaquina(maq.id); let i = index"
+                    [class.dragging]="itemArrastado?.codigoEtapa === item.codigoEtapa"
+                    [attr.draggable]="isAdmin"
+                    (dragstart)="iniciarArraste(item)"
+                    (dragover)="permitirSoltar($event)"
+                    (drop)="soltarNaFila(maq.id, item)"
+                    (dragend)="finalizarArraste()">
+                      <div>
+                          <strong>{{ i + 1 }}. {{ item.codigoEtapa }}</strong>
+                          <span>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</span>
+                      </div>
+                      <button *ngIf="isAdmin" class="queue-remove-btn" title="Tirar da fila" (click)="removerDaFila(item.codigoEtapa)">×</button>
+                  </div>
+              </div>
+
+              <ng-template #filaVazia>
+                  <div class="queue-empty">Sem ordens na fila.</div>
+              </ng-template>
+
+              <div class="queue-add" *ngIf="isAdmin">
+                  <select [(ngModel)]="selecaoFilaPorMaquina[maq.id]" name="fila{{ maq.id }}">
+                      <option value="">-- ADICIONAR / MOVER OF --</option>
+                      <option
+                        *ngFor="let item of itensFila"
+                        [value]="item.codigoEtapa"
+                        [disabled]="item.maquinaIdealId === maq.id">
+                          {{ item.codigoEtapa }} | {{ item.maquinaIdealNome || 'Sem máquina' }}
+                      </option>
+                  </select>
+                  <button class="btn btn-blue" (click)="adicionarNaFila(maq.id)" [disabled]="isCarregando">
+                      Adicionar
+                  </button>
+              </div>
+          </div>
+      </div>
   </div>
 </div>

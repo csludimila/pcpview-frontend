@@ -1,49 +1,118 @@
-<div class="container mt-4">
-  <div class="row">
-    <div class="col-md-4">
-      <div class="card bg-dark text-white p-4 shadow-sm border-0">
-        <h3 class="mb-3 text-uppercase fw-bold">Novo Produto</h3>
-        <form [formGroup]="produtoForm" (ngSubmit)="onSalvar()">
-          <div class="mb-3">
-            <label class="form-label">ID do Produto</label>
-            <input type="text" class="form-control" formControlName="id" placeholder="Ex: prod-123">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">SKU (Código Base)</label>
-            <input type="text" class="form-control" formControlName="sku" placeholder="Ex: 1000">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Nome do Produto</label>
-            <input type="text" class="form-control" formControlName="nome" placeholder="Ex: Eixo Principal">
-          </div>
-          <button type="submit" class="btn btn-primary w-100 fw-bold">Cadastrar Produto</button>
-        </form>
+<div class="control-panels" style="margin-top: 20px;">
+  <div class="panel" style="background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--panel-border);">
+    <h3 style="margin: 0 0 20px 0;">📦 Cadastrar Produto</h3>
+
+    <form (ngSubmit)="adicionarProduto()">
+      <div class="form-group">
+        <label>ID DO PRODUTO</label>
+        <input type="text" [(ngModel)]="novoProduto.id" name="id" placeholder="Ex: PROD-1000" required>
       </div>
+
+      <div class="form-group">
+        <label>SKU DO PRODUTO (BASE)</label>
+        <input type="text" [(ngModel)]="novoProduto.sku" name="sku" placeholder="Ex: 1000" required>
+      </div>
+
+      <div class="form-group">
+        <label>NOME DO PRODUTO</label>
+        <input type="text" [(ngModel)]="novoProduto.nome" name="nome" placeholder="Ex: EIXO PRINCIPAL" required>
+      </div>
+
+      <button type="submit" class="btn btn-full btn-blue" [disabled]="isCarregando">
+        {{ isCarregando ? 'Processando...' : 'Cadastrar Produto' }}
+      </button>
+    </form>
+
+    <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-top: 20px;">
+      {{ mensagemFeedback }}
+    </div>
+  </div>
+
+  <div class="panel" style="background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--panel-border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+      <h3 style="margin: 0;">Produtos Cadastrados</h3>
+      <input
+        type="text"
+        [(ngModel)]="termoBusca"
+        name="termoBusca"
+        placeholder="🔍 Pesquisar ID/SKU/NOME..."
+        style="max-width: 300px;">
     </div>
 
-    <div class="col-md-8">
-      <div class="card bg-dark text-white p-4 shadow-sm border-0">
-        <h3 class="mb-3 text-uppercase fw-bold">Produtos Cadastrados (Banco H2)</h3>
-        <table class="table table-dark table-striped m-0">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>SKU</th>
-              <th>Nome</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let p of listaDeProdutos">
-              <td>{{ p.id }}</td>
-              <td>{{ p.sku }}</td>
-              <td>{{ p.nome }}</td>
-            </tr>
-            <tr *ngIf="listaDeProdutos.length === 0">
-              <td colspan="3" class="text-center text-muted">Nenhum produto encontrado no banco de dados.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 680px;">
+        <thead>
+          <tr>
+            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">ID</th>
+            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">SKU</th>
+            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">PRODUTO</th>
+            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">AÇÃO</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngIf="produtosFiltrados.length === 0 && !isCarregando">
+            <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">
+              Nenhum produto encontrado.
+            </td>
+          </tr>
+
+          <tr *ngIf="isCarregando && produtos.length === 0">
+            <td colspan="4" style="text-align: center; padding: 30px; color: var(--accent);">
+              Comunicando com o servidor...
+            </td>
+          </tr>
+
+          <tr *ngFor="let prod of produtosFiltrados">
+            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border);">{{ prod.id }}</td>
+            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border); font-weight: bold;">{{ prod.sku }}</td>
+            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border);">
+              <span *ngIf="produtoEmEdicaoId !== prod.id">{{ prod.nome }}</span>
+              <input
+                *ngIf="produtoEmEdicaoId === prod.id"
+                type="text"
+                [(ngModel)]="nomeEditado"
+                name="nomeEditado{{ prod.id }}"
+                style="padding: 8px;">
+            </td>
+            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border);">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button
+                  *ngIf="produtoEmEdicaoId !== prod.id"
+                  type="button"
+                  class="btn btn-blue"
+                  style="padding: 8px 12px; font-size: 0.8em;"
+                  (click)="iniciarEdicao(prod)">
+                  Editar
+                </button>
+                <button
+                  *ngIf="produtoEmEdicaoId === prod.id"
+                  type="button"
+                  class="btn btn-green"
+                  style="padding: 8px 12px; font-size: 0.8em;"
+                  (click)="salvarEdicao(prod)">
+                  Salvar
+                </button>
+                <button
+                  *ngIf="produtoEmEdicaoId === prod.id"
+                  type="button"
+                  class="btn btn-yellow"
+                  style="padding: 8px 12px; font-size: 0.8em;"
+                  (click)="cancelarEdicao()">
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-red"
+                  style="padding: 8px 12px; font-size: 0.8em;"
+                  (click)="excluirProduto(prod.id)">
+                  Excluir
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

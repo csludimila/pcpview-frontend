@@ -1,20 +1,19 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // Necessário para formulários
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
-import { UserModel } from '../../../models/user.model';
+import { RegisterRequestDTO } from '../../../models/api.models';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule], // Importamos aqui para funcionar o [(ngModel)]
+  imports: [CommonModule, FormsModule],
   templateUrl: './register.html',
   styleUrl: './register.css'
 })
 export class RegisterComponent {
   
-  // Criamos o objeto que vai guardar o que o usuário digitar
-  novoUsuario: UserModel = {
+  novoUsuario: RegisterRequestDTO = {
     userName: '',
     email: '',
     password: '',
@@ -24,24 +23,25 @@ export class RegisterComponent {
   constructor(private authService: AuthService) {}
 
   executarCadastro() {
-    // Verificação simples antes de enviar
-    if (this.novoUsuario.userName && this.novoUsuario.email) {
-      this.authService.cadastrar(this.novoUsuario).subscribe({
+    if (this.novoUsuario.userName && this.novoUsuario.email && this.novoUsuario.password) {
+      
+      this.authService.registrar(this.novoUsuario).subscribe({
         next: () => {
           alert("Usuário cadastrado com sucesso!");
-          // Limpa os campos após o sucesso
           this.novoUsuario = { userName: '', email: '', password: '', role: 'USER' };
         },
-        error: (err) => {
+        error: (err: any) => {
           if (err.status === 409) {
             alert("Erro: Este usuário ou e-mail já existe.");
           } else {
             alert("Erro ao conectar com o servidor.");
+            console.error(err);
           }
         }
       });
+      
     } else {
-      alert("Por favor, preencha o nome e o e-mail.");
+      alert("Por favor, preencha todos os campos (Nome, E-mail e Senha).");
     }
   }
 }

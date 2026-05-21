@@ -1,23 +1,24 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
-  <div class="container">
-    <a class="navbar-brand font-weight-bold" href="#">PCPView</a>
-    
-    <div class="navbar-nav">
-      <a class="nav-link" routerLink="/escritorio" routerLinkActive="active">
-        🏢 Escritório
-      </a>
-      
-      <a class="nav-link" routerLink="/produtos" routerLinkActive="active">
-        📦 Produtos
-      </a>
-
-      <a class="nav-link" routerLink="/fabrica" routerLinkActive="active">
-        ⚙️ Fábrica
-      </a>
-    </div>
+<div class="header container" *ngIf="mostrarMenu" style="margin-top: 20px;">
+  
+  <div class="header-logo-area" style="display: flex; align-items: center; gap: 15px;">
+      <span class="brand-mark">PCP</span>
+      <span class="brand-title">PCPView</span>
   </div>
-</nav>
 
-<div class="container-fluid"> 
+  <div class="nav-menu">
+      <a *ngIf="isAdmin()" class="btn nav-btn" routerLink="/planejamento" routerLinkActive="active">🏢 Planejamento</a>
+      <a class="btn nav-btn" routerLink="/operacao" routerLinkActive="active">⚙️ Operação</a>
+      <a class="btn nav-btn" routerLink="/acompanhamento" routerLinkActive="active">⏳ Acompanhamento</a>
+      <a class="btn nav-btn" routerLink="/maquinas" routerLinkActive="active">🏭 Máquinas</a>
+  </div>
+
+  <div class="header-user-area" style="display: flex; align-items: center;">
+      <span id="user-info" style="font-weight: bold; color: var(--accent);">{{ userLabel }}</span>
+      <button class="btn btn-red" style="margin-left: 15px;" (click)="fazerLogout()">Sair</button>
+  </div>
+
+</div>
+
+<div class="container-fluid" style="padding: 0;"> 
   <router-outlet></router-outlet>
 </div>

@@ -1,47 +1,59 @@
-/* login.css */
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #1a1d21; /* Cor de fundo escura do seu projeto */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--bg-dark);
 }
 
-.neo-card {
-  padding: 40px;
-  border-radius: 30px;
-  background: #1a1d21;
-  box-shadow: 10px 10px 20px #0d0e10, -10px -10px 20px #272c32;
-  text-align: center;
-  width: 350px;
+.login-card {
+    background-color: var(--bg-dark);
+    padding: 40px;
+    border-radius: 28px;
+    border: 1px solid var(--panel-border);
+    box-shadow: 12px 12px 24px var(--shadow-dark), -12px -12px 24px rgba(39, 44, 50, 0.58);
+    width: 100%;
+    max-width: 400px;
 }
 
-.neo-input {
-  width: 100%;
-  padding: 15px;
-  margin: 15px 0;
-  border: none;
-  border-radius: 10px;
-  background: #1a1d21;
-  box-shadow: inset 5px 5px 10px #0d0e10, inset -5px -5px 10px #272c32;
-  color: white;
-  outline: none;
+.login-logo {
+    text-align: center;
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.neo-button {
-  width: 100%;
-  padding: 15px;
-  margin-top: 20px;
-  border: none;
-  border-radius: 10px;
-  background: #1a1d21;
-  box-shadow: 5px 5px 10px #0d0e10, -5px -5px 10px #272c32;
-  color: #00d4ff;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
+.login-brand-mark {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    font-size: 1em;
 }
 
-.neo-button:active {
-  box-shadow: inset 3px 3px 6px #0d0e10, inset -3px -3px 6px #272c32;
+h2 {
+    color: var(--text-light);
+    font-size: 2em;
+    margin: 0 0 8px 0;
+    letter-spacing: 0;
+}
+
+h3 {
+    color: var(--text-muted);
+    font-size: 0.78em;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.error-alert {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--status-maintenance);
+    border: 1px solid var(--status-maintenance);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9em;
+    font-weight: bold;
 }

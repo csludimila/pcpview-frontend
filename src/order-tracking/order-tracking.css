@@ -1,0 +1,130 @@
+.tracking-page {
+    padding: 20px;
+}
+
+.tracking-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    background: var(--bg-panel);
+    color: var(--text-light);
+    padding: 16px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 8px 8px 18px var(--shadow-dark), -8px -8px 18px rgba(39, 44, 50, 0.42);
+}
+
+.summary-card strong {
+    display: block;
+    color: var(--status-pause);
+    font-size: 1em;
+    text-align: center;
+}
+
+.summary-card.production strong {
+    color: var(--accent);
+}
+
+.summary-card.done strong {
+    color: var(--status-start);
+}
+
+.summary-card.active {
+    border-color: rgba(0, 212, 255, 0.45);
+    box-shadow: inset 4px 4px 10px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light);
+}
+
+.tracking-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.tracking-search input {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--bg-dark);
+    color: var(--text-light);
+    padding: 0 14px;
+    box-shadow: inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
+}
+
+.tracking-search input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.tracking-loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--accent);
+    font-size: 1.2em;
+}
+
+.tracking-panel-title.waiting {
+    color: var(--status-pause);
+}
+
+.tracking-panel-title.production {
+    color: var(--accent);
+}
+
+.tracking-panel-title.done {
+    color: var(--status-start);
+}
+
+.empty-cell {
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.lot-cell {
+    font-weight: 800;
+    color: var(--text-light);
+}
+
+.quantity-cell {
+    font-weight: 700;
+}
+
+.queue-position {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--bg-dark);
+    border: 1px solid var(--panel-border);
+    color: var(--text-light);
+    font-weight: 800;
+}
+
+.queue-unassigned {
+    color: var(--text-muted);
+    border-style: dashed;
+}
+
+.setup-cell {
+    color: var(--status-pause);
+    font-weight: bold;
+}
+
+@media (max-width: 760px) {
+    .tracking-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .tracking-search {
+        grid-template-columns: 1fr;
+    }
+}
