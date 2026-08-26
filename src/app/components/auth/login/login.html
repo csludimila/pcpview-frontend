@@ -7,27 +7,31 @@
       </div>
 
       <!-- Alerta de Erro -->
-      <div *ngIf="errorMessage" class="error-alert">
+      <div *ngIf="errorMessage" class="error-alert" role="alert" aria-live="assertive">
           {{ errorMessage }}
       </div>
 
       <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
           <div class="form-group">
-              <label>Identificação (E-mail ou Crachá)</label>
+              <label for="login-email">Identificação (E-mail ou Crachá)</label>
               <input 
+                id="login-email"
                 type="text" 
                 name="email" 
                 [(ngModel)]="email" 
                 placeholder="Ex: admin@empresa.com" 
+                autocomplete="username"
                 required>
           </div>
           <div class="form-group">
-              <label>Senha</label>
+              <label for="login-password">Senha</label>
               <input 
+                id="login-password"
                 type="password" 
                 name="password" 
                 [(ngModel)]="password" 
                 placeholder="******" 
+                autocomplete="current-password"
                 required>
           </div>
           

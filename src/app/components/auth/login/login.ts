@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { apiErrorMessage } from '../../../shared/api-error';
 
 @Component({
   selector: 'app-login',
@@ -34,11 +35,11 @@ export class LoginComponent {
       next: () => {
         this.isLoading = false;
         const role = this.authService.getRole();
-        this.router.navigate([role === 'ADMIN' ? '/planejamento' : '/maquinas']);
+        this.router.navigate([role === 'ADMIN' ? '/planejamento' : '/operacao']);
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.error?.message || 'Credenciais inválidas ou erro no servidor.';
+        this.errorMessage = apiErrorMessage(err, 'Credenciais inválidas. Verifique o login e a senha.');
       }
     });
   }

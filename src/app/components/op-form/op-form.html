@@ -7,8 +7,8 @@
         
         <form [formGroup]="opForm">
             <div class="form-group">
-                <label>MÁQUINA EM USO</label>
-                <select formControlName="idMaquina" (change)="verificarStatusMaquina()">
+                <label for="op-machine">MÁQUINA EM USO</label>
+                <select id="op-machine" formControlName="idMaquina" (change)="verificarStatusMaquina()">
                     <option value="" disabled selected>Selecione a máquina</option>
                     <option *ngFor="let maq of listaDeMaquinas" [value]="maq.id">{{ maq.nome }}</option>
                 </select>
@@ -21,8 +21,8 @@
             </div>
             
             <div class="form-group">
-                <label>ORDEM DE SERVIÇO (LOTE)</label>
-                <select formControlName="idEtapaSubOrdem">
+                <label for="op-sub-order">ORDEM DE SERVIÇO (LOTE)</label>
+                <select id="op-sub-order" formControlName="idEtapaSubOrdem">
                     <option value="" disabled selected>Selecione a sub-ordem</option>
                     <option *ngFor="let ord of ordensDisponiveisParaMaquina" [value]="ord.codigoEtapa">
                         {{ textoOpcaoOrdem(ord) }}
@@ -42,7 +42,8 @@
             </div>
 
             <div id="ihm-display-info" class="of-ativa-text">
-                <p>PRODUTO: <span>{{ subOrdemSelecionada?.codigoEtapa || '-' }}</span></p>
+                <p>OF / LOTE: <span>{{ loteSelecionado }}</span></p>
+                <p>PRODUTO: <span>{{ produtoSelecionado }}</span></p>
                 <p>STATUS ATUAL: <span class="status-ok">{{ saldoSelecionado }}</span></p>
                 <p>EXECUÇÃO: <span>{{ execucaoAtual?.id || '-' }}</span></p>
                 <p>STATUS: <span class="status-ok">{{ statusExecucaoAtual }}</span></p>
@@ -50,27 +51,33 @@
                 <p>SETUP 1ª PEÇA: <span class="status-setup">{{ formatarDuracao(execucaoAtual?.tempoSetupSegundos) }}</span></p>
             </div>
 
-            <label class="setup-toggle">
-                <input type="checkbox" formControlName="setupPrimeiraPeca">
+            <label class="setup-toggle" for="op-setup-first-piece">
+                <input id="op-setup-first-piece" type="checkbox" formControlName="setupPrimeiraPeca">
                 Setup da primeira peça
             </label>
 
             <div class="action-buttons">
-                <button type="button" class="btn btn-green" (click)="onIniciar()" [disabled]="!opForm.valid || !maquinaPodeIniciar">▶ Iniciar</button>
-                <button type="button" class="btn btn-yellow" (click)="onPausar()">⏸ Pausa</button>
-                <button type="button" class="btn btn-blue" (click)="onRetomar()">▶ Retomar</button>
-                <button type="button" class="btn btn-orange" (click)="onFinalizarSetup()">Setup OK</button>
-                <button type="button" class="btn btn-red action-btn-full" (click)="onManutencao()">⚠ Quebra de Lote</button>
+                <button type="button" class="btn btn-green" (click)="onIniciar()" [disabled]="!podeIniciar">Iniciar</button>
+                <button type="button" class="btn btn-yellow" (click)="onPausar()" [disabled]="!podePausar">Pausa</button>
+                <button type="button" class="btn btn-blue" (click)="onRetomar()" [disabled]="!podeRetomar">Retomar</button>
+                <button type="button" class="btn btn-orange" (click)="onFinalizarSetup()" [disabled]="!podeFinalizarSetup">Setup OK</button>
+                <button
+                    type="button"
+                    class="btn btn-red action-btn-full"
+                    (click)="onManutencao()"
+                    [disabled]="!podeEnviarManutencao">
+                    Manutenção
+                </button>
             </div>
 
             <hr class="op-divider">
 
             <div class="apontamento-area">
-                <input type="number" formControlName="quantidadeProduzida" min="1" placeholder="Qtd">
-                <button type="button" class="btn btn-orange" (click)="onFinalizar()">✅ Apontar Produção / Finalizar</button>
+                <input type="number" formControlName="quantidadeProduzida" min="1" placeholder="Qtd" aria-label="Quantidade produzida">
+                <button type="button" class="btn btn-orange" (click)="onFinalizar()" [disabled]="!podeFinalizar">Apontar Produção / Finalizar</button>
             </div>
 
-            <div *ngIf="mensagemFeedback" class="alert-banner op-alert">
+            <div *ngIf="mensagemFeedback" class="alert-banner op-alert" role="status" aria-live="polite">
                 {{ mensagemFeedback }}
             </div>
         </form>

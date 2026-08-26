@@ -23,7 +23,7 @@
           <div class="queue-panel-header">
               <div>
                   <h3>OFs sem máquina definida</h3>
-              <span>{{ itensSemMaquina.length }} OFs aguardando direcionamento</span>
+              <span>{{ textoQuantidadeOF(itensSemMaquina.length) }} aguardando direcionamento</span>
           </div>
       </div>
       <div class="queue-list">
@@ -46,17 +46,65 @@
 
   <div class="machine-grid" *ngIf="maquinas.length > 0">
       <div class="machine-card" *ngFor="let maq of maquinas">
-          <button *ngIf="isAdmin" class="delete-btn" title="Excluir máquina" (click)="excluirMaquina(maq.id)">×</button>
-
           <div class="machine-title-row">
-              <h3>{{ maq.nome }}</h3>
-              <span class="queue-counter">{{ filaDaMaquina(maq.id).length }} OFs</span>
+              <ng-container *ngIf="maquinaEdicaoId === maq.id; else tituloMaquina">
+                  <div class="machine-edit-area">
+                      <input
+                        type="text"
+                        class="machine-edit-input"
+                        [(ngModel)]="nomeMaquinaEditado"
+                        (keyup.enter)="salvarNomeMaquina(maq)"
+                        (keyup.escape)="cancelarEdicaoMaquina()">
+                      <div class="machine-edit-actions">
+                          <button type="button" class="icon-btn save-btn" title="Salvar nome" (click)="salvarNomeMaquina(maq)">✓</button>
+                          <button type="button" class="icon-btn cancel-btn" title="Cancelar edição" (click)="cancelarEdicaoMaquina()">×</button>
+                      </div>
+                  </div>
+              </ng-container>
+              <ng-template #tituloMaquina>
+                  <h3>{{ maq.nome }}</h3>
+              </ng-template>
+              <span class="queue-counter">{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
+              <div class="machine-card-actions" *ngIf="isAdmin">
+                  <button
+                    type="button"
+                    class="icon-btn edit-btn"
+                    title="Editar nome da máquina"
+                    *ngIf="maquinaEdicaoId !== maq.id"
+                    (click)="iniciarEdicaoMaquina(maq)">
+                      ✎
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn delete-btn"
+                    [class.confirming]="maquinaExclusaoPendente === maq.id"
+                    [title]="maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão' : 'Excluir máquina'"
+                    (click)="excluirMaquina(maq.id)">
+                      {{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}
+                  </button>
+              </div>
           </div>
 
           <div class="status-area">
               <span class="status-label">Status: </span>
               <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
               <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
+          </div>
+
+          <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)">
+              <div>
+                  <span>OF em produção</span>
+                  <strong>{{ textoOFAtiva(maq) }}</strong>
+              </div>
+              <div>
+                  <span>Operador</span>
+                  <strong>{{ textoOperadorAtivo(maq) }}</strong>
+              </div>
+              <div>
+                  <span>Quantidade</span>
+                  <strong>{{ textoQuantidadeAtiva(maq) }}</strong>
+                  <small>{{ textoRestanteAtivo(maq) }}</small>
+              </div>
           </div>
 
           <button *ngIf="isAdmin" class="btn-toggle-status" (click)="alternarStatus(maq.id)">
@@ -66,7 +114,7 @@
           <div class="queue-section">
               <div class="queue-section-title">
                   <h4>Fila de Produção</h4>
-                  <span>{{ filaDaMaquina(maq.id).length }} OFs</span>
+                  <span>{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
               </div>
 
               <div class="queue-list" *ngIf="filaDaMaquina(maq.id).length > 0; else filaVazia">

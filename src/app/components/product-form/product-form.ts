@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { ProductRequestDTO, ProductResponseDTO } from '../../models/api.models';
+import { apiErrorMessage } from '../../shared/api-error';
 
 @Component({
   selector: 'app-product-form',
   standalone: true,
   imports: [CommonModule, FormsModule], 
   templateUrl: './product-form.html'
-  // Removi a linha do styleUrls para não dar erro de ficheiro CSS não encontrado
 })
 export class ProductFormComponent implements OnInit {
   private productService = inject(ProductService);
@@ -20,6 +20,7 @@ export class ProductFormComponent implements OnInit {
   mensagemFeedback = '';
   termoBusca = '';
   produtoEmEdicaoId = '';
+  produtoExclusaoPendenteId = '';
   nomeEditado = '';
   
   novoProduto: ProductRequestDTO = {
@@ -37,11 +38,13 @@ export class ProductFormComponent implements OnInit {
     this.productService.buscarTodosProdutos().subscribe({
       next: (dados: ProductResponseDTO[]) => {
         this.produtos = dados;
+        if (this.produtoExclusaoPendenteId && !dados.some((produto) => produto.id === this.produtoExclusaoPendenteId)) {
+          this.produtoExclusaoPendenteId = '';
+        }
         this.isCarregando = false;
       },
-      error: (err: any) => {
-        console.error('Erro ao buscar produtos:', err);
-        this.mensagemFeedback = err.error?.message || 'Erro ao carregar produtos do servidor.';
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar produtos do servidor.');
         this.isCarregando = false;
       }
     });
@@ -71,9 +74,8 @@ export class ProductFormComponent implements OnInit {
         this.mensagemFeedback = 'Produto cadastrado com sucesso.';
         this.carregarProdutos();
       },
-      error: (err: any) => {
-        console.error('Erro ao adicionar produto', err);
-        this.mensagemFeedback = err.error?.message || 'Erro ao cadastrar produto.';
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao cadastrar produto.');
         this.isCarregando = false;
       }
     });
@@ -81,6 +83,7 @@ export class ProductFormComponent implements OnInit {
 
   iniciarEdicao(produto: ProductResponseDTO) {
     this.produtoEmEdicaoId = produto.id || '';
+    this.produtoExclusaoPendenteId = '';
     this.nomeEditado = produto.nome || '';
     this.mensagemFeedback = '';
   }
@@ -103,9 +106,8 @@ export class ProductFormComponent implements OnInit {
         this.cancelarEdicao();
         this.carregarProdutos();
       },
-      error: (err: any) => {
-        console.error('Erro ao atualizar produto', err);
-        this.mensagemFeedback = err.error?.message || 'Erro ao atualizar produto.';
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar produto.');
         this.isCarregando = false;
       }
     });
@@ -113,18 +115,24 @@ export class ProductFormComponent implements OnInit {
 
   excluirProduto(id: string | undefined) {
     if (!id) return;
-    
-    if (!confirm('Deseja excluir este produto?')) return;
+
+    if (this.produtoExclusaoPendenteId !== id) {
+      this.produtoExclusaoPendenteId = id;
+      this.mensagemFeedback = 'Clique novamente em excluir para confirmar a remoção do produto.';
+      return;
+    }
     
     this.isCarregando = true;
+    this.mensagemFeedback = '';
     this.productService.deletarProduto(id).subscribe({
       next: () => {
         this.mensagemFeedback = 'Produto excluído com sucesso.';
+        this.produtoExclusaoPendenteId = '';
         this.carregarProdutos();
       },
-      error: (err: any) => {
-        console.error('Erro ao excluir produto', err);
-        this.mensagemFeedback = err.error?.message || 'Erro ao excluir produto.';
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir produto.');
+        this.produtoExclusaoPendenteId = '';
         this.isCarregando = false;
       }
     });

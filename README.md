@@ -1,59 +1,94 @@
-# PcpviewFrontend
+# PCPView Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.22.
+Frontend Angular do PCPView.
 
-## Development server
+## Rodar localmente
 
-To start a local development server, run:
+O jeito mais simples é usar o script do backend, que sobe PostgreSQL, backend e frontend:
 
-```bash
-ng serve
+```powershell
+cd C:\Users\alexj\OneDrive\Desktop\PCPView
+.\scripts\start-local-dev.ps1
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Frontend:
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```text
+http://localhost:4200
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Login local
 
-```bash
-ng generate --help
+```text
+Administrador: admin@pcpview.local / 123456
+Operador:      operador@pcpview.local / 123456
 ```
 
-## Building
+## Comandos úteis
 
-To build the project run:
-
-```bash
-ng build
+```powershell
+npm start
+npm run build
+npm run build:local
+npm run build:prod
+npm run test:headless
+npm run test:types
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+O projeto usa CSS proprio para manter fidelidade ao prototipo. Bootstrap e Bootstrap Icons nao sao dependencias do frontend.
 
-## Running unit tests
+`npm start` usa `environment.development.ts` e aponta para `http://localhost:8080`.
+`npm run build:prod` usa `environment.ts`; antes de publicar, troque `apiUrl` para a URL real do backend.
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+O frontend possui um tratamento global de erro para mostrar uma mensagem amigavel caso alguma falha inesperada escape das telas principais.
 
-```bash
-ng test
+## Publicar online
+
+No build de producao, o Angular usa:
+
+```text
+src/environments/environment.ts
 ```
 
-## Running end-to-end tests
+Troque `apiUrl` pela URL real do backend antes de publicar:
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
+```ts
+export const environment = {
+  production: true,
+  apiUrl: 'https://api.seu-dominio.com'
+};
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Depois rode `npm run build:prod` e publique a pasta `dist/pcpview-frontend/browser`.
 
-## Additional Resources
+## Docker
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+O frontend possui `Dockerfile` e `nginx.conf` para servir o Angular como aplicacao estatica com fallback de rota e headers basicos de seguranca.
+
+Build manual:
+
+```powershell
+docker build --build-arg API_URL=https://sua-api.com -t pcpview-frontend .
+docker run --rm -p 4200:80 pcpview-frontend
+```
+
+Tambem e possivel subir tudo pelo compose completo do backend:
+
+```powershell
+cd C:\Users\alexj\OneDrive\Desktop\PCPView
+docker compose -f compose.full.yaml --env-file .env.example up --build
+```
+
+## Telas principais
+
+```text
+/login
+/planejamento
+/maquinas
+/operacao
+/acompanhamento
+/cadastro
+```
+
+`/cadastro` aparece apenas para administradores.
+Produtos permanece no código, mas a rota `/produtos` redireciona para Planejamento enquanto a tela fica fora do fluxo principal.

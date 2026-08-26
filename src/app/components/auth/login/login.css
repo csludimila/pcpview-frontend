@@ -30,6 +30,15 @@
     border-radius: 16px;
     margin-bottom: 18px;
     font-size: 1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #20242a, #171a1e);
+    border: 1px solid rgba(0, 212, 255, 0.28);
+    box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+    color: var(--accent);
+    font-weight: 900;
+    letter-spacing: 0;
 }
 
 h2 {
@@ -56,4 +65,100 @@ h3 {
     text-align: center;
     font-size: 0.9em;
     font-weight: bold;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+    text-align: left;
+}
+
+.form-group label {
+    color: var(--text-muted);
+    font-size: 0.75em;
+    font-weight: 800;
+    letter-spacing: 0;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.form-group input {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    font-size: 1em;
+    outline: none;
+    box-shadow: inset 4px 4px 9px var(--shadow-dark), inset -4px -4px 9px var(--shadow-light);
+}
+
+.form-group input::placeholder {
+    color: #66707b;
+}
+
+.form-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.35), inset 4px 4px 9px var(--shadow-dark), inset -4px -4px 9px var(--shadow-light);
+}
+
+.btn {
+    min-height: 46px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-align: center;
+    transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.54;
+}
+
+.btn-full {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-blue {
+    background: var(--accent);
+    color: #081114;
+    box-shadow: 5px 5px 12px var(--shadow-dark), -5px -5px 12px rgba(39, 44, 50, 0.42);
+}
+
+@media (max-width: 520px) {
+    .login-wrapper {
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 56px 16px 24px;
+    }
+
+    .login-card {
+        max-width: none;
+        padding: 28px 22px;
+    }
+
+    h2 {
+        font-size: 1.75em;
+    }
 }

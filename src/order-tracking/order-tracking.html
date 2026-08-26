@@ -29,6 +29,10 @@
         A sincronizar com o banco de dados...
     </div>
 
+    <div *ngIf="mensagemFeedback && !isCarregando" class="alert-banner tracking-alert">
+        {{ mensagemFeedback }}
+    </div>
+
     <div class="panel" *ngIf="abaAtiva === 'aguardando' && !isCarregando">
         <div class="panel-header tracking-panel-title waiting">
             Ordens Aguardando Início
@@ -75,6 +79,7 @@
                         <th>Nº ORDEM / LOTE</th>
                         <th>PRODUTO</th>
                         <th>MÁQUINA</th>
+                        <th>OPERADOR</th>
                         <th>FILA</th>
                         <th>QUANTIDADE</th>
                         <th>INÍCIO</th>
@@ -84,17 +89,18 @@
                 </thead>
                 <tbody>
                     <tr *ngIf="ordensProducaoFiltradas.length === 0">
-                        <td colspan="8" class="empty-cell">Nenhuma ordem encontrada.</td>
+                        <td colspan="9" class="empty-cell">Nenhuma ordem encontrada.</td>
                     </tr>
                     <tr *ngFor="let ordem of ordensProducaoFiltradas">
                         <td class="lot-cell">{{ codigoLote(ordem) }}</td>
                         <td>{{ produtoOrdem(ordem) }}</td>
-                        <td class="text-blue">{{ maquinaIdeal(ordem) }}</td>
+                        <td class="text-blue">{{ maquinaProducao(ordem) }}</td>
+                        <td>{{ operadorProducao(ordem) }}</td>
                         <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
                         <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
                         <td>{{ formatarData(ordem.dataInicio) }}</td>
                         <td>{{ formatarDuracao(ordem.tempoProdutivoSegundos) }}</td>
-                        <td><span class="status-badge status-producao">PRODUZINDO</span></td>
+                        <td><span [class]="classeStatusProducao(ordem)">{{ textoStatusProducao(ordem) }}</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -128,7 +134,7 @@
                         <td colspan="11" class="empty-cell">Nenhum serviço encontrado.</td>
                     </tr>
                     <tr *ngFor="let ordem of ordensFinalizadasFiltradas">
-                        <td class="lot-cell">{{ ordem.numeroOrdem }}</td>
+                        <td class="lot-cell">{{ codigoFinalizado(ordem) }}</td>
                         <td>{{ produtoOrdem(ordem) }}</td>
                         <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
                         <td>{{ formatarData(ordem.dataInicio) }}</td>

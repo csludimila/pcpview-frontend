@@ -12,7 +12,14 @@
               
               <div class="form-group">
                   <label>SKU DO PRODUTO (Base)</label>
-                  <input type="text" [(ngModel)]="novaOrdem.numeroOrdem" name="sku" placeholder="Ex: 1000" required>
+                  <input
+                    type="text"
+                    [ngModel]="novaOrdem.numeroOrdem"
+                    (ngModelChange)="atualizarNumeroOrdemDigitado($event)"
+                    (blur)="normalizarNumeroOrdemCampo()"
+                    name="sku"
+                    placeholder="Ex: PV-0011003"
+                    required>
                   <div *ngIf="ordemJaExiste" class="field-warning">
                       Código de OF já cadastrado.
                   </div>
@@ -20,7 +27,13 @@
               
               <div class="form-group">
                   <label>NOME DO PRODUTO</label>
-                  <input type="text" [(ngModel)]="nomeProdutoRef" name="nome" placeholder="Ex: Eixo Principal">
+                  <input
+                    type="text"
+                    [ngModel]="nomeProdutoRef"
+                    (ngModelChange)="atualizarNomeProdutoDigitado($event)"
+                    (blur)="normalizarNomeProdutoCampo()"
+                    name="nome"
+                    placeholder="Ex: EIXO PRINCIPAL">
               </div>
               
               <div class="form-group">
@@ -39,7 +52,7 @@
                   </div>
               </div>
               
-              <button type="submit" class="btn btn-orange btn-full mt-4" [disabled]="isCarregando">
+              <button type="submit" class="btn btn-orange btn-full mt-4" [disabled]="!podeGerarOrdem">
                   {{ isCarregando ? 'A gerar ordem...' : 'Gerar Ordem de Serviço' }}
               </button>
           </form>
@@ -53,14 +66,14 @@
           <div class="form-group">
               <label>EXCLUIR ORDEM DE SERVIÇO</label>
               <div class="delete-row">
-                  <select [(ngModel)]="ordemParaExcluir" name="ordemExcluir">
+                  <select [(ngModel)]="ordemParaExcluir" (ngModelChange)="ordemExclusaoPendente = ''" name="ordemExcluir">
                       <option value="">-- SELECIONE A ORDEM --</option>
                       <option *ngFor="let ordem of ordens" [value]="ordem.numeroOrdem">
                           {{ ordem.numeroOrdem }} (Qtd: {{ ordem.quantidadeTotal }})
                       </option>
                   </select>
                   <button type="button" class="btn btn-red" (click)="excluirOrdem()" [disabled]="!ordemParaExcluir || isCarregando">
-                      Deletar
+                      {{ ordemExclusaoPendente === ordemParaExcluir ? 'Confirmar' : 'Deletar' }}
                   </button>
               </div>
           </div>

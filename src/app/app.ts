@@ -1,6 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet, Router, NavigationEnd, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AuthService } from './services/auth.service';
+import { GlobalErrorService } from './shared/global-error.service';
 
 @Component({
   selector: 'app-root',
@@ -14,19 +17,29 @@ export class AppComponent {
   mostrarMenu: boolean = false;
   userEmail = '';
   userRole = '';
+  erroGlobal = '';
 
-  constructor(private router: Router) {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly globalErrorService = inject(GlobalErrorService);
+
+  constructor(private router: Router, private authService: AuthService) {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.mostrarMenu = !event.urlAfterRedirects.includes('/login') && !event.urlAfterRedirects.includes('/cadastro');
+        this.mostrarMenu = !event.urlAfterRedirects.includes('/login');
         this.atualizarUsuarioLogado();
       }
     });
+
+    this.globalErrorService.mensagem$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((mensagem) => {
+        this.erroGlobal = mensagem;
+      });
   }
 
   atualizarUsuarioLogado() {
-    this.userEmail = localStorage.getItem('userEmail') || 'Colaborador';
-    this.userRole = localStorage.getItem('userRole') || '';
+    this.userEmail = this.authService.getUserEmail() || 'Colaborador';
+    this.userRole = this.authService.getRole() || '';
   }
 
   get userLabel(): string {
@@ -36,13 +49,22 @@ export class AppComponent {
   }
 
   isAdmin(): boolean {
-    return this.userRole === 'ADMIN';
+    return this.authService.isAdmin();
   }
 
   fazerLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
+    this.authService.revogarSessao().subscribe({
+      next: () => this.finalizarLogoutLocal(),
+      error: () => this.finalizarLogoutLocal()
+    });
+  }
+
+  limparErroGlobal() {
+    this.globalErrorService.limpar();
+  }
+
+  private finalizarLogoutLocal() {
+    this.authService.logout();
     this.router.navigate(['/login']);
   }
 }

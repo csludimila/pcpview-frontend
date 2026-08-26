@@ -1,13 +1,16 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 
-import { Production } from './production';
+import { ExecutionOrderService } from './execution-order.service';
 
-describe('Production', () => {
-  let service: Production;
+describe('ExecutionOrderService', () => {
+  let service: ExecutionOrderService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Production);
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient()]
+    });
+    service = TestBed.inject(ExecutionOrderService);
   });
 
   it('should be created', () => {

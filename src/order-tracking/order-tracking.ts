@@ -1,8 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, interval } from 'rxjs';
 import { ExecutionOrderService } from '../app/services/execution-order.service';
-import { OrderResponseDTO, SubOrderResponseDTO } from '../app/models/api.models';
+import { ExecutionResponseDTO, OrderResponseDTO, SubOrderResponseDTO } from '../app/models/api.models';
+import { apiErrorMessage } from '../app/shared/api-error';
 
 @Component({
   selector: 'app-order-tracking',
@@ -13,17 +16,23 @@ import { OrderResponseDTO, SubOrderResponseDTO } from '../app/models/api.models'
 })
 export class OrderTrackingComponent implements OnInit {
   private executionService = inject(ExecutionOrderService);
+  private destroyRef = inject(DestroyRef);
 
   abaAtiva: 'aguardando' | 'producao' | 'finalizadas' = 'aguardando';
   isCarregando = false;
   termoPesquisa = '';
+  mensagemFeedback = '';
 
   ordensAguardando: OrderResponseDTO[] = [];
   ordensProducao: OrderResponseDTO[] = [];
   ordensFinalizadas: OrderResponseDTO[] = [];
+  execucoesAbertas: ExecutionResponseDTO[] = [];
 
   ngOnInit() {
     this.carregarDados();
+    interval(8000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.carregarDados(true));
   }
 
   mudarAba(novaAba: 'aguardando' | 'producao' | 'finalizadas') {
@@ -42,20 +51,29 @@ export class OrderTrackingComponent implements OnInit {
     return this.filtrarOrdens(this.ordensFinalizadas);
   }
 
-  carregarDados() {
-    this.isCarregando = true;
-    this.executionService.listarOrdens().subscribe({
-      next: (ordens) => {
-        this.ordensAguardando = ordens.filter((o) => o.status === 'AGUARDANDO' || !o.status);
-        this.ordensProducao = ordens.filter((o) => o.status === 'EM_PROCESSAMENTO');
-        this.ordensFinalizadas = ordens.filter((o) => o.status === 'FINALIZADO');
+  carregarDados(silencioso = false) {
+    if (!silencioso) {
+      this.isCarregando = true;
+    }
+
+    forkJoin({
+      ordens: this.executionService.listarOrdens(),
+      execucoes: this.executionService.listarTodas()
+    }).subscribe({
+      next: ({ ordens, execucoes }) => {
+        this.mensagemFeedback = '';
+        this.execucoesAbertas = execucoes.filter((execucao) => this.execucaoEstaAberta(execucao));
+        this.ordensFinalizadas = ordens.filter((ordem) => this.estaFinalizada(ordem));
+        this.ordensProducao = ordens.filter((ordem) => !this.estaFinalizada(ordem) && ordem.status === 'EM_PROCESSAMENTO');
+        this.ordensAguardando = ordens.filter((ordem) => !this.estaFinalizada(ordem) && ordem.status !== 'EM_PROCESSAMENTO');
         this.ordenarPorFila(this.ordensAguardando);
         this.isCarregando = false;
       },
-      error: (err: any) => {
-        this.isCarregando = false;
-        const errorMessage = err?.message || 'Erro desconhecido ao sincronizar ordens.';
-        console.error('Erro no componente:', errorMessage);
+      error: (err: unknown) => {
+        if (!silencioso) {
+          this.isCarregando = false;
+        }
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao sincronizar acompanhamento.');
       }
     });
   }
@@ -94,8 +112,32 @@ export class OrderTrackingComponent implements OnInit {
     return this.subOrdemPrincipal(ordem)?.codigoEtapa || ordem.numeroOrdem || '-';
   }
 
+  codigoFinalizado(ordem: OrderResponseDTO): string {
+    return this.codigoLote(ordem) || ordem.numeroOrdem || '-';
+  }
+
   produtoOrdem(ordem: OrderResponseDTO): string {
     return ordem.produtoNome || ordem.produtoSku || '-';
+  }
+
+  maquinaProducao(ordem: OrderResponseDTO): string {
+    return this.execucaoAtivaDaOrdem(ordem)?.maquinaNome || this.maquinaIdeal(ordem);
+  }
+
+  operadorProducao(ordem: OrderResponseDTO): string {
+    return this.execucaoAtivaDaOrdem(ordem)?.operadorNome || '-';
+  }
+
+  textoStatusProducao(ordem: OrderResponseDTO): string {
+    const status = this.execucaoAtivaDaOrdem(ordem)?.status;
+    return status === 'PAUSADA_POR_QUEBRA' ? 'PAUSADA' : 'PRODUZINDO';
+  }
+
+  classeStatusProducao(ordem: OrderResponseDTO): string {
+    const status = this.execucaoAtivaDaOrdem(ordem)?.status;
+    return status === 'PAUSADA_POR_QUEBRA'
+      ? 'status-badge status-pausado'
+      : 'status-badge status-producao';
   }
 
   temPesquisa(): boolean {
@@ -128,6 +170,13 @@ export class OrderTrackingComponent implements OnInit {
       .trim();
   }
 
+  private estaFinalizada(ordem: OrderResponseDTO): boolean {
+    const quantidadeTotal = ordem.quantidadeTotal || this.subOrdemPrincipal(ordem)?.quantidadeTotal || 0;
+    const quantidadeProduzida = ordem.quantidadeProduzida || this.subOrdemPrincipal(ordem)?.quantidadeProduzida || 0;
+
+    return ordem.status === 'FINALIZADO' || (quantidadeTotal > 0 && quantidadeProduzida >= quantidadeTotal);
+  }
+
   private ordenarPorFila(ordens: OrderResponseDTO[]) {
     ordens.sort((a, b) => {
       const maquinaA = this.subOrdemPrincipal(a)?.maquinaIdealNome || 'ZZZ';
@@ -143,5 +192,14 @@ export class OrderTrackingComponent implements OnInit {
 
   private subOrdemPrincipal(ordem: OrderResponseDTO): SubOrderResponseDTO | undefined {
     return ordem.subOrdens?.[0];
+  }
+
+  private execucaoAtivaDaOrdem(ordem: OrderResponseDTO): ExecutionResponseDTO | undefined {
+    const codigosSubOrdens = new Set((ordem.subOrdens || []).map((subOrdem) => subOrdem.codigoEtapa));
+    return this.execucoesAbertas.find((execucao) => execucao.subOrdemId && codigosSubOrdens.has(execucao.subOrdemId));
+  }
+
+  private execucaoEstaAberta(execucao: ExecutionResponseDTO): boolean {
+    return execucao.status === 'RODANDO' || execucao.status === 'PAUSADA_POR_QUEBRA';
   }
 }

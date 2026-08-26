@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import {
+  ExecutionResponseDTO,
+  ExecutionStartRequestDTO,
+  OrderRequestDTO,
+  OrderResponseDTO
+} from '../models/api.models';
 
 @Injectable({
   providedIn: 'root'
@@ -13,23 +19,23 @@ export class OpService {
 
   constructor(private http: HttpClient) { }
 
-  cadastrar(ordem: any): Observable<any> {
-    return this.http.post<any>(this.API_ORDENS, ordem);
+  cadastrar(ordem: OrderRequestDTO): Observable<OrderResponseDTO> {
+    return this.http.post<OrderResponseDTO>(this.API_ORDENS, ordem);
   }
 
-  iniciarExecucao(dadosExecucao: any): Observable<any> {
-    return this.http.post<any>(`${this.API_EXECUCOES}/iniciar`, dadosExecucao);
+  iniciarExecucao(dadosExecucao: ExecutionStartRequestDTO): Observable<ExecutionResponseDTO> {
+    return this.http.post<ExecutionResponseDTO>(`${this.API_EXECUCOES}/iniciar`, dadosExecucao);
   }
 
-  buscarExecucoes(): Observable<any[]> {
-    return this.http.get<any[]>(this.API_EXECUCOES);
+  buscarExecucoes(): Observable<ExecutionResponseDTO[]> {
+    return this.http.get<ExecutionResponseDTO[]>(this.API_EXECUCOES);
   }
 
-  finalizarExecucao(idExecucao: string, qtdProduzida: number): Observable<any> {
+  finalizarExecucao(idExecucao: string, qtdProduzida: number): Observable<ExecutionResponseDTO> {
     const body = {
       idExecucao: idExecucao,
       quantidadeProduzida: qtdProduzida
     };
-    return this.http.put<any>(`${this.API_EXECUCOES}/finalizar`, body);
+    return this.http.put<ExecutionResponseDTO>(`${this.API_EXECUCOES}/finalizar`, body);
   }
 }

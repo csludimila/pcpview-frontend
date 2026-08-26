@@ -4,12 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { MachineService, MachineDTO } from '../../services/machine.service';
 import { ExecutionOrderService } from '../../services/execution-order.service';
 import { OrderResponseDTO } from '../../models/api.models';
+import { apiErrorMessage } from '../../shared/api-error';
 
 @Component({
   selector: 'app-order-form',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './order-form.html'
+  templateUrl: './order-form.html',
+  styleUrls: ['./order-form.css']
 })
 export class OrderFormComponent implements OnInit {
   private machineService = inject(MachineService);
@@ -26,6 +28,7 @@ export class OrderFormComponent implements OnInit {
   nomeProdutoRef = '';
   maquinaSelecionada = '';
   ordemParaExcluir = '';
+  ordemExclusaoPendente = '';
   isCarregando = false;
   mensagemFeedback = '';
 
@@ -58,12 +61,25 @@ export class OrderFormComponent implements OnInit {
   }
 
   get codigoOrdemNormalizado(): string {
-    return this.novaOrdem.numeroOrdem.trim();
+    return this.normalizarTextoMaiusculo(this.novaOrdem.numeroOrdem);
+  }
+
+  get nomeProdutoNormalizado(): string {
+    return this.normalizarTextoMaiusculo(this.nomeProdutoRef);
   }
 
   get ordemJaExiste(): boolean {
-    const codigo = this.codigoOrdemNormalizado.toLowerCase();
-    return !!codigo && this.ordens.some((ordem) => (ordem.numeroOrdem || '').toLowerCase() === codigo);
+    const codigo = this.codigoOrdemNormalizado;
+    return !!codigo && this.ordens.some((ordem) => this.normalizarTextoMaiusculo(ordem.numeroOrdem || '') === codigo);
+  }
+
+  get podeGerarOrdem(): boolean {
+    const quantidadeTotal = Number(this.novaOrdem.quantidadeTotal);
+    return !!this.codigoOrdemNormalizado &&
+      Number.isInteger(quantidadeTotal) &&
+      quantidadeTotal > 0 &&
+      !this.ordemJaExiste &&
+      !this.isCarregando;
   }
 
   ngOnInit() {
@@ -77,24 +93,44 @@ export class OrderFormComponent implements OnInit {
         this.maquinasDisponiveis = maquinas.filter(m => m.operacional);
       },
       error: (err) => {
-        console.error('Erro ao buscar máquinas', err);
-        this.mensagemFeedback = 'Erro ao carregar máquinas disponíveis.';
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar máquinas disponíveis.');
       }
     });
   }
 
   carregarOrdens() {
     this.orderService.listarOrdens().subscribe({
-      next: (dados) => this.ordens = dados,
+      next: (dados) => {
+        this.ordens = dados;
+        if (this.ordemExclusaoPendente && !dados.some((ordem) => ordem.numeroOrdem === this.ordemExclusaoPendente)) {
+          this.ordemExclusaoPendente = '';
+        }
+      },
       error: (err) => {
-        console.error('Erro ao buscar ordens', err);
-        this.mensagemFeedback = 'Erro ao carregar ordens de serviço.';
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar ordens de serviço.');
       }
     });
   }
 
+  normalizarNumeroOrdemCampo() {
+    this.novaOrdem.numeroOrdem = this.codigoOrdemNormalizado;
+  }
+
+  normalizarNomeProdutoCampo() {
+    this.nomeProdutoRef = this.nomeProdutoNormalizado;
+  }
+
+  atualizarNumeroOrdemDigitado(valor: string) {
+    this.novaOrdem.numeroOrdem = this.converterTextoMaiusculo(valor);
+  }
+
+  atualizarNomeProdutoDigitado(valor: string) {
+    this.nomeProdutoRef = this.converterTextoMaiusculo(valor);
+  }
+
   gerarOrdem() {
     const numeroOrdem = this.codigoOrdemNormalizado;
+    const produtoNome = this.nomeProdutoNormalizado;
     const quantidadeTotal = Number(this.novaOrdem.quantidadeTotal);
 
     if (!numeroOrdem || !Number.isInteger(quantidadeTotal) || quantidadeTotal <= 0) {
@@ -113,7 +149,7 @@ export class OrderFormComponent implements OnInit {
     const payload = {
       numeroOrdem,
       quantidadeTotal,
-      produtoNome: this.nomeProdutoRef.trim() || undefined,
+      produtoNome: produtoNome || undefined,
       maquinaIdealId: this.maquinaSelecionada ? this.maquinaSelecionada : null,
       subconjuntos: [{ letra: "A", quantidadeEtapas: 1 }]
     };
@@ -131,16 +167,28 @@ export class OrderFormComponent implements OnInit {
         this.isCarregando = false;
       },
       error: (err) => {
-        console.error('Erro ao gerar ordem', err);
-        this.mensagemFeedback = err.error?.message || 'Erro ao gerar ordem de serviço.';
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao gerar ordem de serviço.');
         this.isCarregando = false;
       }
     });
   }
 
+  private normalizarTextoMaiusculo(valor: string): string {
+    return this.converterTextoMaiusculo(valor).trim();
+  }
+
+  private converterTextoMaiusculo(valor: string): string {
+    return (valor || '').toUpperCase();
+  }
+
   excluirOrdem() {
     if (!this.ordemParaExcluir) return;
-    if (!confirm('Tem a certeza que deseja excluir esta ordem permanentemente?')) return;
+
+    if (this.ordemExclusaoPendente !== this.ordemParaExcluir) {
+      this.ordemExclusaoPendente = this.ordemParaExcluir;
+      this.mensagemFeedback = 'Clique novamente em excluir para confirmar a remoção da ordem.';
+      return;
+    }
 
     this.isCarregando = true;
     this.mensagemFeedback = '';
@@ -148,12 +196,13 @@ export class OrderFormComponent implements OnInit {
       next: () => {
         this.mensagemFeedback = 'Ordem excluída com sucesso.';
         this.ordemParaExcluir = '';
+        this.ordemExclusaoPendente = '';
         this.carregarOrdens();
         this.isCarregando = false;
       },
       error: (err) => {
-        console.error('Erro ao excluir ordem', err);
-        this.mensagemFeedback = err.error?.message || 'Erro ao excluir ordem. Ela pode estar em produção.';
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir ordem. Ela pode estar em produção.');
+        this.ordemExclusaoPendente = '';
         this.isCarregando = false;
       }
     });

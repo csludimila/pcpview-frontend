@@ -1,12 +1,14 @@
 .tracking-page {
-    padding: 20px;
+    width: min(1280px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0 42px;
 }
 
 .tracking-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
-    margin-bottom: 24px;
+    margin: 24px 0;
 }
 
 .summary-card {
@@ -70,6 +72,10 @@
     font-size: 1.2em;
 }
 
+.tracking-alert {
+    margin-bottom: 20px;
+}
+
 .tracking-panel-title.waiting {
     color: var(--status-pause);
 }
@@ -120,6 +126,11 @@
 }
 
 @media (max-width: 760px) {
+    .tracking-page {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+    }
+
     .tracking-summary {
         grid-template-columns: 1fr;
     }

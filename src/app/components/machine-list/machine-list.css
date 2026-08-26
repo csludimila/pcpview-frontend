@@ -1,12 +1,15 @@
 ﻿.machine-page {
-    padding: 20px;
+    width: min(1280px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0 42px;
 }
 
 .machine-page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin: 24px 0 30px;
+    gap: 18px;
 }
 
 .machine-page-header h2 {
@@ -52,23 +55,23 @@
     border: 1px solid var(--panel-border);
     border-radius: 12px;
     padding: 20px;
-    position: relative;
     box-shadow: 8px 8px 18px var(--shadow-dark), -8px -8px 18px rgba(39, 44, 50, 0.42);
 }
 
 .machine-title-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: start;
     gap: 12px;
-    padding-right: 34px;
+    margin-bottom: 15px;
 }
 
 .machine-card h3 {
     font-size: 1.2em;
-    margin-bottom: 15px;
+    margin-bottom: 0;
     color: var(--text-light);
     margin-top: 0;
+    overflow-wrap: anywhere;
 }
 
 .queue-counter {
@@ -82,23 +85,90 @@
     background: var(--accent-soft);
 }
 
-.delete-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
+.machine-card-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.icon-btn {
     background: none;
-    border: 1px solid var(--status-maintenance);
-    color: var(--status-maintenance);
     border-radius: 6px;
     padding: 4px 8px;
     cursor: pointer;
     font-weight: bold;
     transition: all 0.2s;
+    line-height: 1;
+}
+
+.delete-btn {
+    border: 1px solid var(--status-maintenance);
+    color: var(--status-maintenance);
 }
 
 .delete-btn:hover {
     background: var(--status-maintenance);
     color: white;
+}
+
+.delete-btn.confirming {
+    background: var(--status-maintenance);
+    color: white;
+}
+
+.edit-btn {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.edit-btn:hover,
+.save-btn:hover {
+    background: var(--accent-soft);
+}
+
+.save-btn {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.cancel-btn {
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
+}
+
+.cancel-btn:hover {
+    border-color: var(--text-light);
+    color: var(--text-light);
+}
+
+.machine-edit-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+}
+
+.machine-edit-input {
+    width: 100%;
+    min-width: 0;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--text-light);
+    padding: 8px 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.machine-edit-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.machine-edit-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
 }
 
 .status-area {
@@ -123,6 +193,41 @@
     font-weight: bold;
     font-size: 0.9em;
     letter-spacing: 0.5px;
+}
+
+.active-production {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 18px 0;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 212, 255, 0.28);
+    background: var(--accent-soft);
+}
+
+.active-production span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.72em;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.active-production strong {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.88em;
+    overflow-wrap: anywhere;
+}
+
+.active-production small {
+    display: block;
+    color: var(--accent);
+    font-size: 0.76em;
+    font-weight: 800;
+    margin-top: 4px;
 }
 
 .btn-toggle-status {
@@ -151,6 +256,7 @@
     border: 1px solid var(--panel-border);
     border-radius: 12px;
     padding: 20px;
+    box-shadow: 8px 8px 18px var(--shadow-dark), -8px -8px 18px rgba(39, 44, 50, 0.42);
 }
 
 .sem-maquina-panel h3,
@@ -248,9 +354,15 @@
 }
 
 @media (max-width: 768px) {
+    .machine-page {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+    }
+
     .machine-page-header,
     .add-machine-area,
-    .queue-add {
+    .queue-add,
+    .active-production {
         grid-template-columns: 1fr;
         flex-direction: column;
         align-items: stretch;
@@ -258,6 +370,15 @@
 
     .search-bar {
         width: 100%;
+    }
+
+    .machine-title-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .machine-card-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
     }
 }
 

@@ -2,12 +2,16 @@ import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
+import { interval } from 'rxjs';
 import { MachineService } from '../../services/machine.service';
 import { ExecutionOrderService } from '../../services/execution-order.service';
 import { MachineResponseDTO, ExecutionResponseDTO, OrderResponseDTO, SubOrderResponseDTO, ExecutionStartRequestDTO } from '../../models/api.models';
+import { apiErrorMessage } from '../../shared/api-error';
 
 interface SubOrderOption extends SubOrderResponseDTO {
   ordemNumero: string;
+  produtoNome?: string;
+  produtoSku?: string;
 }
 
 @Component({
@@ -44,7 +48,6 @@ export class OpFormComponent implements OnInit {
     this.carregarOrdensPlanejadas();
     this.carregarExecucoes();
 
-    // Escuta mudanças no formulário via reatividade
     this.opForm.get('idMaquina')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => {
@@ -54,6 +57,16 @@ export class OpFormComponent implements OnInit {
     this.opForm.get('idEtapaSubOrdem')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.atualizarExecucaoAtualPorSelecao());
+
+    interval(8000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.sincronizarOperacao());
+  }
+
+  sincronizarOperacao() {
+    this.carregarMaquinas();
+    this.carregarOrdensPlanejadas();
+    this.carregarExecucoes();
   }
 
   verificarStatusMaquina() {
@@ -69,6 +82,7 @@ export class OpFormComponent implements OnInit {
 
     this.maquinaSelecionada = this.listaDeMaquinas.find(m => m.id === id);
     this.validarSubOrdemSelecionadaParaMaquina(id);
+    this.selecionarExecucaoAtivaDaMaquina(id);
 
     if (this.maquinaSelecionada?.statusOperacional === 'TRABALHANDO') {
       this.mensagemFeedback = 'Atenção: Esta máquina já está trabalhando.';
@@ -81,24 +95,34 @@ export class OpFormComponent implements OnInit {
 
   carregarMaquinas() {
     this.machineService.buscarTodasMaquinas().subscribe({
-      next: (dados) => this.listaDeMaquinas = dados
+      next: (dados) => {
+        this.listaDeMaquinas = dados;
+        this.atualizarStatusMaquina(this.opForm.controls.idMaquina.value);
+      },
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar máquinas.')
     });
   }
 
   carregarOrdensPlanejadas() {
     this.executionOrderService.listarOrdens().subscribe({
       next: (ordens) => {
+        const codigoSelecionado = this.opForm.controls.idEtapaSubOrdem.value;
         this.listaDeOrdens = ordens.flatMap((ordem: OrderResponseDTO) =>
           (ordem.subOrdens || [])
-            .filter((subOrdem) => (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0))
+            .filter((subOrdem) =>
+              (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0) &&
+              (subOrdem.status === 'AGUARDANDO' || !subOrdem.status || subOrdem.codigoEtapa === codigoSelecionado || this.subOrdemTemExecucaoAberta(subOrdem.codigoEtapa))
+            )
             .map((subOrdem) => ({
               ...subOrdem,
-              ordemNumero: ordem.numeroOrdem || ''
+              ordemNumero: ordem.numeroOrdem || '',
+              produtoNome: ordem.produtoNome,
+              produtoSku: ordem.produtoSku
             }))
         );
         this.validarSubOrdemSelecionadaParaMaquina(this.opForm.controls.idMaquina.value);
       },
-      error: () => this.mensagemFeedback = 'Erro ao carregar ordens planejadas.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar ordens planejadas.')
     });
   }
 
@@ -141,10 +165,44 @@ export class OpFormComponent implements OnInit {
     }
   }
 
+  private subOrdemTemExecucaoAberta(codigoEtapa: string | undefined): boolean {
+    if (!codigoEtapa) return false;
+    return this.listaDeExecucoes.some((execucao) =>
+      execucao.subOrdemId === codigoEtapa && this.statusExecucaoAberta(execucao.status)
+    );
+  }
+
+  private statusExecucaoAberta(status: ExecutionResponseDTO['status'] | undefined): boolean {
+    return status === 'RODANDO' || status === 'PAUSADA_POR_QUEBRA';
+  }
+
+  private execucaoAbertaDaMaquina(maquinaId: string | null | undefined): ExecutionResponseDTO | undefined {
+    if (!maquinaId) return undefined;
+
+    return this.listaDeExecucoes
+      .filter((execucao) => execucao.maquinaId === maquinaId && this.statusExecucaoAberta(execucao.status))
+      .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
+  }
+
+  private selecionarExecucaoAtivaDaMaquina(maquinaId: string | null | undefined) {
+    const execucaoAberta = this.execucaoAbertaDaMaquina(maquinaId);
+    if (!execucaoAberta?.id) return;
+
+    this.execucaoAtual = execucaoAberta;
+    if (execucaoAberta.subOrdemId && this.opForm.controls.idEtapaSubOrdem.value !== execucaoAberta.subOrdemId) {
+      this.opForm.controls.idEtapaSubOrdem.setValue(execucaoAberta.subOrdemId, { emitEvent: false });
+    }
+  }
+
   textoOpcaoOrdem(ordem: SubOrderOption): string {
     const proxima = this.proximaOrdemDaFila?.codigoEtapa === ordem.codigoEtapa ? 'Próxima | ' : '';
-    const fila = ordem.maquinaIdealId ? `Fila ${ordem.posicaoFila || '-'}` : 'Sem máquina';
+    const fila = ordem.maquinaIdealId ? `Fila ${this.posicaoAtualNaFila(ordem) || ordem.posicaoFila || '-'}` : 'Sem máquina';
     return `${proxima}${ordem.codigoEtapa} | ${ordem.quantidadeProduzida || 0} / ${ordem.quantidadeTotal} peças | ${fila}`;
+  }
+
+  private posicaoAtualNaFila(ordem: SubOrderOption): number | null {
+    const indice = this.ordensDisponiveisParaMaquina.findIndex((item) => item.codigoEtapa === ordem.codigoEtapa);
+    return indice >= 0 ? indice + 1 : null;
   }
 
   get proximaOrdemDaFila(): SubOrderOption | undefined {
@@ -179,8 +237,9 @@ export class OpFormComponent implements OnInit {
       next: (execucoes) => {
         this.listaDeExecucoes = execucoes;
         this.atualizarExecucaoAtualPorSelecao();
+        this.garantirSubOrdemAtivaNaLista();
       },
-      error: () => this.mensagemFeedback = 'Erro ao carregar execuções em andamento.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar execuções em andamento.')
     });
   }
 
@@ -191,9 +250,21 @@ export class OpFormComponent implements OnInit {
 
   get saldoSelecionado(): string {
     const subOrdem = this.subOrdemSelecionada;
+    if (!subOrdem && this.execucaoAtual?.quantidadeTotal !== undefined) {
+      return `${this.execucaoAtual.quantidadeProduzida || 0} / ${this.execucaoAtual.quantidadeTotal || 0} PEÇAS`;
+    }
     if (!subOrdem) return '0 / 0 PEÇAS';
 
     return `${subOrdem.quantidadeProduzida || 0} / ${subOrdem.quantidadeTotal || 0} PEÇAS`;
+  }
+
+  get loteSelecionado(): string {
+    return this.subOrdemSelecionada?.codigoEtapa || '-';
+  }
+
+  get produtoSelecionado(): string {
+    const subOrdem = this.subOrdemSelecionada;
+    return subOrdem?.produtoNome || subOrdem?.produtoSku || '-';
   }
 
   get statusExecucaoAtual(): string {
@@ -217,24 +288,70 @@ export class OpFormComponent implements OnInit {
     return this.maquinaSelecionada?.statusOperacional === 'DISPONIVEL' || (!!this.maquinaSelecionada?.operacional && !this.maquinaSelecionada?.statusOperacional);
   }
 
+  get execucaoRodando(): boolean {
+    return this.execucaoAtual?.status === 'RODANDO';
+  }
+
+  get execucaoPausada(): boolean {
+    return this.execucaoAtual?.status === 'PAUSADA_POR_QUEBRA';
+  }
+
+  get podeIniciar(): boolean {
+    return this.opForm.valid && this.maquinaPodeIniciar && !this.execucaoAtual;
+  }
+
+  get podePausar(): boolean {
+    return this.execucaoRodando;
+  }
+
+  get podeRetomar(): boolean {
+    return this.execucaoPausada;
+  }
+
+  get podeFinalizarSetup(): boolean {
+    return this.execucaoRodando && !!this.execucaoAtual?.setupPrimeiraPeca;
+  }
+
+  get podeEnviarManutencao(): boolean {
+    return !!this.opForm.controls.idMaquina.value && this.maquinaSelecionada?.statusOperacional !== 'MANUTENCAO';
+  }
+
+  get podeFinalizar(): boolean {
+    const quantidadeProduzida = this.opForm.controls.quantidadeProduzida.value || 0;
+    return !!this.execucaoAtual?.id && quantidadeProduzida > 0 && (this.execucaoRodando || this.execucaoPausada);
+  }
+
   private atualizarExecucaoAtualPorSelecao() {
     const codigoEtapa = this.opForm.controls.idEtapaSubOrdem.value;
+    const maquinaId = this.opForm.controls.idMaquina.value;
 
     if (!codigoEtapa) {
-      this.execucaoAtual = undefined;
+      this.execucaoAtual = this.execucaoAbertaDaMaquina(maquinaId);
       return;
     }
 
-    this.execucaoAtual = this.listaDeExecucoes
+    const execucaoSelecionada = this.listaDeExecucoes
       .filter((execucao) =>
         execucao.subOrdemId === codigoEtapa &&
-        (execucao.status === 'RODANDO' || execucao.status === 'PAUSADA_POR_QUEBRA')
+        this.statusExecucaoAberta(execucao.status)
       )
       .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
+
+    this.execucaoAtual = execucaoSelecionada || this.execucaoAbertaDaMaquina(maquinaId);
+  }
+
+  private garantirSubOrdemAtivaNaLista() {
+    const codigoEtapa = this.execucaoAtual?.subOrdemId;
+    if (!codigoEtapa) return;
+
+    const existeNaLista = this.listaDeOrdens.some((ordem) => ordem.codigoEtapa === codigoEtapa);
+    if (!existeNaLista) {
+      this.carregarOrdensPlanejadas();
+    }
   }
 
   onIniciar() {
-    if (this.opForm.invalid) return;
+    if (!this.podeIniciar) return;
 
     const payload: ExecutionStartRequestDTO = {
       idMaquina: this.opForm.controls.idMaquina.value || '',
@@ -249,13 +366,13 @@ export class OpFormComponent implements OnInit {
         this.carregarMaquinas();
         this.carregarOrdensPlanejadas();
       },
-      error: (err) => this.mensagemFeedback = err.error?.message || 'Erro ao iniciar produção.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao iniciar produção.')
     });
   }
 
   onPausar() {
-    if (!this.execucaoAtual?.id) {
-      this.mensagemFeedback = 'Inicie uma produção antes de pausar.';
+    if (!this.podePausar || !this.execucaoAtual?.id) {
+      this.mensagemFeedback = 'A produção precisa estar rodando para pausar.';
       return;
     }
 
@@ -265,16 +382,38 @@ export class OpFormComponent implements OnInit {
         this.listaDeExecucoes = this.listaDeExecucoes.map((item) => item.id === execucao.id ? execucao : item);
         this.mensagemFeedback = 'Produção pausada por quebra. O tempo produtivo parou de contar.';
       },
-      error: (err) => this.mensagemFeedback = err.error?.message || 'Erro ao pausar produção.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao pausar produção.')
     });
   }
 
   onManutencao() {
-    this.onPausar();
+    const idMaquina = this.opForm.controls.idMaquina.value;
+
+    if (!idMaquina || !this.podeEnviarManutencao) {
+      this.mensagemFeedback = 'Selecione uma máquina disponível ou trabalhando para enviar para manutenção.';
+      return;
+    }
+
+    if (this.maquinaSelecionada?.statusOperacional === 'MANUTENCAO') {
+      this.mensagemFeedback = 'Esta máquina já está em manutenção.';
+      return;
+    }
+
+    this.machineService.enviarParaManutencao(idMaquina).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Máquina enviada para manutenção. A OF ativa voltou para a fila.';
+        this.execucaoAtual = undefined;
+        this.opForm.patchValue({ idEtapaSubOrdem: '', quantidadeProduzida: 1, setupPrimeiraPeca: false });
+        this.carregarMaquinas();
+        this.carregarOrdensPlanejadas();
+        this.carregarExecucoes();
+      },
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao enviar máquina para manutenção.')
+    });
   }
 
   onRetomar() {
-    if (!this.execucaoAtual?.id) {
+    if (!this.podeRetomar || !this.execucaoAtual?.id) {
       this.mensagemFeedback = 'Não há execução pausada para retomar.';
       return;
     }
@@ -285,13 +424,13 @@ export class OpFormComponent implements OnInit {
         this.listaDeExecucoes = this.listaDeExecucoes.map((item) => item.id === execucao.id ? execucao : item);
         this.mensagemFeedback = 'Produção retomada. O tempo produtivo voltou a contar.';
       },
-      error: (err) => this.mensagemFeedback = err.error?.message || 'Erro ao retomar produção.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao retomar produção.')
     });
   }
 
   onFinalizarSetup() {
-    if (!this.execucaoAtual?.id) {
-      this.mensagemFeedback = 'Inicie uma produção com setup para finalizar o setup.';
+    if (!this.podeFinalizarSetup || !this.execucaoAtual?.id) {
+      this.mensagemFeedback = 'O setup só pode ser finalizado com a produção rodando.';
       return;
     }
 
@@ -301,14 +440,14 @@ export class OpFormComponent implements OnInit {
         this.listaDeExecucoes = this.listaDeExecucoes.map((item) => item.id === execucao.id ? execucao : item);
         this.mensagemFeedback = 'Setup da primeira peça registrado. O restante do lote será calculado separado.';
       },
-      error: (err) => this.mensagemFeedback = err.error?.message || 'Erro ao finalizar setup.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao finalizar setup.')
     });
   }
 
   onFinalizar() {
     const quantidadeProduzida = this.opForm.controls.quantidadeProduzida.value || 0;
 
-    if (!this.execucaoAtual?.id || quantidadeProduzida <= 0) {
+    if (!this.podeFinalizar || !this.execucaoAtual?.id || quantidadeProduzida <= 0) {
       this.mensagemFeedback = 'Inicie uma produção e informe uma quantidade válida.';
       return;
     }
@@ -326,7 +465,7 @@ export class OpFormComponent implements OnInit {
         this.carregarOrdensPlanejadas();
         this.carregarExecucoes();
       },
-      error: (err) => this.mensagemFeedback = err.error?.message || 'Erro ao finalizar apontamento.'
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao finalizar apontamento.')
     });
   }
 

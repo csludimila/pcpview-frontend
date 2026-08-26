@@ -1,0 +1,190 @@
+.register-page {
+    width: min(1180px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0 42px;
+}
+
+.register-grid {
+    width: 100%;
+    margin: 24px auto 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 520px) minmax(360px, 1fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.register-panel {
+    max-width: 520px;
+    width: 100%;
+    border-radius: 16px;
+}
+
+.register-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.register-header h3 {
+    margin: 0;
+    color: var(--text-light);
+}
+
+.register-header p {
+    margin: 4px 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.84em;
+}
+
+.register-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    box-shadow: inset 3px 3px 7px var(--shadow-dark), inset -3px -3px 7px var(--shadow-light);
+    color: var(--accent);
+    font-size: 0.75em;
+    font-weight: 900;
+}
+
+.field-warning {
+    margin-top: 8px;
+    color: var(--status-pause);
+    font-size: 0.82em;
+    font-weight: 800;
+}
+
+.feedback-cadastro {
+    margin-top: 12px;
+}
+
+.users-panel {
+    border-radius: 16px;
+    min-width: 0;
+}
+
+.users-header {
+    justify-content: space-between;
+}
+
+.users-list {
+    display: grid;
+    gap: 10px;
+}
+
+.user-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--bg-dark);
+    box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+}
+
+.user-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+}
+
+.user-row strong {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.94em;
+}
+
+.user-row span {
+    color: var(--text-muted);
+    font-size: 0.84em;
+}
+
+.user-row .status-badge {
+    font-size: 0.7em;
+}
+
+.user-row .status-producao {
+    color: var(--accent);
+}
+
+.user-row .status-aguardando {
+    color: var(--status-pause);
+}
+
+.user-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-small {
+    min-height: 34px;
+    padding: 8px 12px;
+    font-size: 0.78em;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--text-light);
+}
+
+.reset-password-box {
+    border-top: 1px solid var(--panel-border);
+    padding-top: 12px;
+}
+
+.reset-password-field {
+    margin-bottom: 10px;
+}
+
+.reset-password-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.empty-users {
+    padding: 22px;
+    border: 1px dashed var(--panel-border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+@media (max-width: 860px) {
+    .register-page {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+    }
+
+    .register-grid {
+        margin: 20px auto;
+        grid-template-columns: 1fr;
+    }
+
+    .register-panel {
+        max-width: none;
+    }
+
+    .user-main {
+        grid-template-columns: 1fr;
+    }
+
+    .user-actions,
+    .reset-password-actions {
+        justify-content: stretch;
+    }
+
+    .user-actions .btn,
+    .reset-password-actions .btn {
+        flex: 1;
+    }
+}

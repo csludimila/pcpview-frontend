@@ -1,6 +1,6 @@
 <div class="control-panels" style="margin-top: 20px;">
   <div class="panel" style="background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--panel-border);">
-    <h3 style="margin: 0 0 20px 0;">📦 Cadastrar Produto</h3>
+    <h3 style="margin: 0 0 20px 0;">Cadastrar Produto</h3>
 
     <form (ngSubmit)="adicionarProduto()">
       <div class="form-group">
@@ -35,7 +35,7 @@
         type="text"
         [(ngModel)]="termoBusca"
         name="termoBusca"
-        placeholder="🔍 Pesquisar ID/SKU/NOME..."
+        placeholder="Pesquisar ID/SKU/NOME..."
         style="max-width: 300px;">
     </div>
 
@@ -106,7 +106,7 @@
                   class="btn btn-red"
                   style="padding: 8px 12px; font-size: 0.8em;"
                   (click)="excluirProduto(prod.id)">
-                  Excluir
+                  {{ produtoExclusaoPendenteId === prod.id ? 'Confirmar' : 'Excluir' }}
                 </button>
               </div>
             </td>

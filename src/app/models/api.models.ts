@@ -15,6 +15,19 @@ export interface LoginRequestDTO {
 
 export interface LoginResponseDTO {
   token: string;
+  refreshToken?: string;
+  expiresAt?: string;
+}
+
+export interface UserResponseDTO {
+  id?: string;
+  userName?: string;
+  email?: string;
+  role?: 'USER' | 'SELLER' | 'ADMIN';
+}
+
+export interface ResetPasswordRequestDTO {
+  password: string;
 }
 
 // ==========================================
@@ -75,6 +88,7 @@ export interface SubOrderResponseDTO {
   codigoEtapa?: string;
   quantidadeTotal?: number;
   quantidadeProduzida?: number;
+  status?: 'AGUARDANDO' | 'EM_PROCESSAMENTO' | 'FINALIZADO' | 'CANCELADO';
   maquinaIdealId?: string | null;
   maquinaIdealNome?: string | null;
   posicaoFila?: number | null;
@@ -113,8 +127,12 @@ export interface ExecutionFinishRequestDTO {
 
 export interface ExecutionResponseDTO {
   id?: string;
+  maquinaId?: string;
   maquinaNome?: string;
   subOrdemId?: string;
+  quantidadeTotal?: number;
+  quantidadeProduzida?: number;
+  quantidadeRestante?: number;
   operadorNome?: string;
   status?: 'RODANDO' | 'FINALIZADA' | 'PAUSADA_POR_QUEBRA' | 'CANCELADA_MANUTENCAO';
   dataInicio?: string;
