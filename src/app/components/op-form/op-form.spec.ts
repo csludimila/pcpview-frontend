@@ -56,6 +56,7 @@ describe('OpFormComponent', () => {
     };
     component.listaDeMaquinas = [maquinaDisponivel];
     component.opForm.patchValue({
+      setor: 'USINAGEM',
       idMaquina: 'M-01',
       idEtapaSubOrdem: 'OF-001-A-01',
       quantidadeProduzida: 1,

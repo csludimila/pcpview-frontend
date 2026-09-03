@@ -6,6 +6,8 @@ import { environment } from '../../environments/environment';
 export interface MachineDTO {
   id: string;
   nome: string;
+  setor?: string;
+  tipoCentro?: string;
   operacional?: boolean;
   statusOperacional?: 'DISPONIVEL' | 'TRABALHANDO' | 'MANUTENCAO';
 }

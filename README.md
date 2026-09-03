@@ -2,6 +2,8 @@
 
 Frontend Angular do PCPView.
 
+Esta branch `feature-processo-completo` amplia o fluxo de usinagem para processo completo, mantendo a identidade visual dark do prototipo: Planejamento cria roteiro, Maquinas funciona como Centros de Trabalho, Operacao aponta etapas e Acompanhamento mostra a rota da OF.
+
 ## Rodar localmente
 
 O jeito mais simples é usar o script do backend, que sobe PostgreSQL, backend e frontend:
@@ -91,4 +93,11 @@ docker compose -f compose.full.yaml --env-file .env.example up --build
 ```
 
 `/cadastro` aparece apenas para administradores.
-Produtos permanece no código, mas a rota `/produtos` redireciona para Planejamento enquanto a tela fica fora do fluxo principal.
+Produtos permanece no codigo, mas a rota `/produtos` redireciona para Planejamento enquanto a tela fica fora do fluxo principal.
+
+## Fluxo visual atual
+
+1. Planejamento cria a OF com roteiro de Corte, Caldeiraria, Usinagem, Acabamento, Inspecao e Expedicao.
+2. Maquinas/Centros mostra cards agrupados por setor e fila abaixo de cada centro.
+3. Operacao mostra apenas etapas liberadas para o setor/centro escolhido.
+4. Acompanhamento pesquisa por OF, produto, etapa, setor ou centro e exibe a linha do processo em miniatura.

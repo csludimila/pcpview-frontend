@@ -96,6 +96,11 @@
 .lot-cell {
     font-weight: 800;
     color: var(--text-light);
+    min-width: 210px;
+}
+
+.lot-cell strong {
+    display: block;
 }
 
 .quantity-cell {
@@ -123,6 +128,53 @@
 .setup-cell {
     color: var(--status-pause);
     font-weight: bold;
+}
+
+.mini-route {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.route-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    max-width: 130px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    color: var(--text-muted);
+    background: var(--bg-dark);
+    font-size: 0.68em;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.route-chip.done {
+    color: var(--status-start);
+    border-color: rgba(40, 167, 69, 0.36);
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.route-chip.active {
+    color: var(--accent);
+    border-color: rgba(0, 212, 255, 0.4);
+    background: var(--accent-soft);
+}
+
+.route-chip.waiting {
+    color: var(--status-pause);
+    border-color: rgba(255, 140, 0, 0.34);
+    background: rgba(255, 140, 0, 0.08);
+}
+
+.route-chip.locked {
+    color: var(--text-muted);
+    border-style: dashed;
 }
 
 @media (max-width: 760px) {

@@ -59,10 +59,10 @@ describe('OrderForm', () => {
     expect(component.mensagemFeedback).toBe('Já existe uma ordem de serviço com esse código.');
   });
 
-  it('deve enviar maquina ideal opcional ao criar OF com textos padronizados em maiusculo', () => {
+  it('deve enviar roteiro do processo ao criar OF com textos padronizados em maiusculo', () => {
     component.novaOrdem = { numeroOrdem: 'pv-0011003', quantidadeTotal: 3 };
     component.nomeProdutoRef = 'eixo principal';
-    component.maquinaSelecionada = 'MAQ-001';
+    component.roteiroEtapas[2].maquinaIdealId = 'MAQ-001';
 
     component.gerarOrdem();
 
@@ -70,8 +70,14 @@ describe('OrderForm', () => {
       numeroOrdem: 'PV-0011003',
       quantidadeTotal: 3,
       produtoNome: 'EIXO PRINCIPAL',
-      maquinaIdealId: 'MAQ-001',
-      subconjuntos: [{ letra: 'A', quantidadeEtapas: 1 }]
+      roteiroEtapas: [
+        { nomeEtapa: 'CORTE', setor: 'CORTE', maquinaIdealId: null },
+        { nomeEtapa: 'CALDEIRARIA', setor: 'CALDEIRARIA', maquinaIdealId: null },
+        { nomeEtapa: 'USINAGEM', setor: 'USINAGEM', maquinaIdealId: 'MAQ-001' },
+        { nomeEtapa: 'ACABAMENTO', setor: 'ACABAMENTO', maquinaIdealId: null },
+        { nomeEtapa: 'INSPECAO', setor: 'INSPECAO', maquinaIdealId: null },
+        { nomeEtapa: 'EXPEDICAO', setor: 'EXPEDICAO', maquinaIdealId: null }
+      ]
     });
   });
 

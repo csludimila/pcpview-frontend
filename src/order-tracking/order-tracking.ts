@@ -64,8 +64,8 @@ export class OrderTrackingComponent implements OnInit {
         this.mensagemFeedback = '';
         this.execucoesAbertas = execucoes.filter((execucao) => this.execucaoEstaAberta(execucao));
         this.ordensFinalizadas = ordens.filter((ordem) => this.estaFinalizada(ordem));
-        this.ordensProducao = ordens.filter((ordem) => !this.estaFinalizada(ordem) && ordem.status === 'EM_PROCESSAMENTO');
-        this.ordensAguardando = ordens.filter((ordem) => !this.estaFinalizada(ordem) && ordem.status !== 'EM_PROCESSAMENTO');
+        this.ordensProducao = ordens.filter((ordem) => !this.estaFinalizada(ordem) && this.temExecucaoAberta(ordem));
+        this.ordensAguardando = ordens.filter((ordem) => !this.estaFinalizada(ordem) && !this.temExecucaoAberta(ordem));
         this.ordenarPorFila(this.ordensAguardando);
         this.isCarregando = false;
       },
@@ -96,28 +96,40 @@ export class OrderTrackingComponent implements OnInit {
   }
 
   maquinaIdeal(ordem: OrderResponseDTO): string {
-    return this.subOrdemPrincipal(ordem)?.maquinaIdealNome || 'Sem máquina definida';
+    return this.subOrdemAtual(ordem)?.maquinaIdealNome || 'Sem centro definido';
   }
 
   posicaoFila(ordem: OrderResponseDTO): string {
-    const posicao = this.subOrdemPrincipal(ordem)?.posicaoFila;
+    const posicao = this.subOrdemAtual(ordem)?.posicaoFila;
     return posicao ? String(posicao) : '-';
   }
 
   classeFila(ordem: OrderResponseDTO): string {
-    return this.subOrdemPrincipal(ordem)?.posicaoFila ? 'queue-position' : 'queue-position queue-unassigned';
+    return this.subOrdemAtual(ordem)?.posicaoFila ? 'queue-position' : 'queue-position queue-unassigned';
   }
 
   codigoLote(ordem: OrderResponseDTO): string {
-    return this.subOrdemPrincipal(ordem)?.codigoEtapa || ordem.numeroOrdem || '-';
+    return this.subOrdemAtual(ordem)?.codigoEtapa || ordem.numeroOrdem || '-';
   }
 
   codigoFinalizado(ordem: OrderResponseDTO): string {
-    return this.codigoLote(ordem) || ordem.numeroOrdem || '-';
+    return this.subOrdemFinal(ordem)?.codigoEtapa || ordem.numeroOrdem || '-';
   }
 
   produtoOrdem(ordem: OrderResponseDTO): string {
     return ordem.produtoNome || ordem.produtoSku || '-';
+  }
+
+  etapaAtual(ordem: OrderResponseDTO): string {
+    const subOrdem = this.subOrdemAtual(ordem);
+    if (!subOrdem) return '-';
+    return `${subOrdem.nomeEtapa || subOrdem.setor || 'ETAPA'} / ${this.textoSetor(subOrdem.setor)}`;
+  }
+
+  quantidadeEtapa(ordem: OrderResponseDTO): string {
+    const subOrdem = this.subOrdemAtual(ordem);
+    if (!subOrdem) return `${ordem.quantidadeProduzida || 0} / ${ordem.quantidadeTotal || 0}`;
+    return `${subOrdem.quantidadeProduzida || 0} / ${subOrdem.quantidadeTotal || 0}`;
   }
 
   maquinaProducao(ordem: OrderResponseDTO): string {
@@ -140,6 +152,24 @@ export class OrderTrackingComponent implements OnInit {
       : 'status-badge status-producao';
   }
 
+  linhaProcesso(ordem: OrderResponseDTO): SubOrderResponseDTO[] {
+    return this.subOrdensOrdenadas(ordem);
+  }
+
+  classeEtapaRoteiro(etapa: SubOrderResponseDTO): string {
+    if (etapa.status === 'FINALIZADO') return 'route-chip done';
+    if (etapa.status === 'EM_PROCESSAMENTO') return 'route-chip active';
+    if (etapa.status === 'BLOQUEADO') return 'route-chip locked';
+    return 'route-chip waiting';
+  }
+
+  textoSetor(setor?: string | null): string {
+    const normalizado = (setor || 'USINAGEM').trim().toUpperCase();
+    if (normalizado === 'INSPECAO') return 'INSPEÇÃO';
+    if (normalizado === 'EXPEDICAO') return 'EXPEDIÇÃO';
+    return normalizado;
+  }
+
   temPesquisa(): boolean {
     return this.termoPesquisa.trim().length > 0;
   }
@@ -149,13 +179,16 @@ export class OrderTrackingComponent implements OnInit {
     if (!termo) return ordens;
 
     return ordens.filter((ordem) => {
-      const subOrdem = this.subOrdemPrincipal(ordem);
       const campos = [
         ordem.numeroOrdem,
         ordem.produtoNome,
         ordem.produtoSku,
-        subOrdem?.codigoEtapa,
-        subOrdem?.maquinaIdealNome
+        ...this.subOrdensOrdenadas(ordem).flatMap((subOrdem) => [
+          subOrdem.codigoEtapa,
+          subOrdem.maquinaIdealNome,
+          subOrdem.nomeEtapa,
+          subOrdem.setor
+        ])
       ];
 
       return campos.some((campo) => this.normalizarTexto(campo).includes(termo));
@@ -171,27 +204,60 @@ export class OrderTrackingComponent implements OnInit {
   }
 
   private estaFinalizada(ordem: OrderResponseDTO): boolean {
-    const quantidadeTotal = ordem.quantidadeTotal || this.subOrdemPrincipal(ordem)?.quantidadeTotal || 0;
-    const quantidadeProduzida = ordem.quantidadeProduzida || this.subOrdemPrincipal(ordem)?.quantidadeProduzida || 0;
+    if (ordem.status === 'FINALIZADO') return true;
 
-    return ordem.status === 'FINALIZADO' || (quantidadeTotal > 0 && quantidadeProduzida >= quantidadeTotal);
+    const subOrdens = this.subOrdensOrdenadas(ordem);
+    if (subOrdens.length > 0) {
+      return subOrdens.every((subOrdem) => subOrdem.status === 'FINALIZADO');
+    }
+
+    const quantidadeTotal = ordem.quantidadeTotal || 0;
+    const quantidadeProduzida = ordem.quantidadeProduzida || 0;
+    return quantidadeTotal > 0 && quantidadeProduzida >= quantidadeTotal;
   }
 
   private ordenarPorFila(ordens: OrderResponseDTO[]) {
     ordens.sort((a, b) => {
-      const maquinaA = this.subOrdemPrincipal(a)?.maquinaIdealNome || 'ZZZ';
-      const maquinaB = this.subOrdemPrincipal(b)?.maquinaIdealNome || 'ZZZ';
+      const maquinaA = this.subOrdemAtual(a)?.maquinaIdealNome || 'ZZZ';
+      const maquinaB = this.subOrdemAtual(b)?.maquinaIdealNome || 'ZZZ';
       const maquinaCompare = maquinaA.localeCompare(maquinaB);
       if (maquinaCompare !== 0) return maquinaCompare;
 
-      const posicaoA = this.subOrdemPrincipal(a)?.posicaoFila || Number.MAX_SAFE_INTEGER;
-      const posicaoB = this.subOrdemPrincipal(b)?.posicaoFila || Number.MAX_SAFE_INTEGER;
+      const posicaoA = this.subOrdemAtual(a)?.posicaoFila || Number.MAX_SAFE_INTEGER;
+      const posicaoB = this.subOrdemAtual(b)?.posicaoFila || Number.MAX_SAFE_INTEGER;
       return posicaoA - posicaoB;
     });
   }
 
-  private subOrdemPrincipal(ordem: OrderResponseDTO): SubOrderResponseDTO | undefined {
-    return ordem.subOrdens?.[0];
+  private subOrdemAtual(ordem: OrderResponseDTO): SubOrderResponseDTO | undefined {
+    const execucao = this.execucaoAtivaDaOrdem(ordem);
+    const subOrdens = this.subOrdensOrdenadas(ordem);
+    if (execucao?.subOrdemId) {
+      return subOrdens.find((subOrdem) => subOrdem.codigoEtapa === execucao.subOrdemId);
+    }
+
+    return subOrdens.find((subOrdem) => subOrdem.status === 'EM_PROCESSAMENTO')
+      || subOrdens.find((subOrdem) => subOrdem.status === 'AGUARDANDO' || !subOrdem.status)
+      || subOrdens.find((subOrdem) => subOrdem.status === 'BLOQUEADO')
+      || subOrdens[0];
+  }
+
+  private subOrdemFinal(ordem: OrderResponseDTO): SubOrderResponseDTO | undefined {
+    const subOrdens = this.subOrdensOrdenadas(ordem);
+    return subOrdens[subOrdens.length - 1] || subOrdens[0];
+  }
+
+  private subOrdensOrdenadas(ordem: OrderResponseDTO): SubOrderResponseDTO[] {
+    return [...(ordem.subOrdens || [])].sort((a, b) => {
+      const ordemA = a.ordemProcesso || Number.MAX_SAFE_INTEGER;
+      const ordemB = b.ordemProcesso || Number.MAX_SAFE_INTEGER;
+      if (ordemA !== ordemB) return ordemA - ordemB;
+      return (a.codigoEtapa || '').localeCompare(b.codigoEtapa || '');
+    });
+  }
+
+  private temExecucaoAberta(ordem: OrderResponseDTO): boolean {
+    return !!this.execucaoAtivaDaOrdem(ordem);
   }
 
   private execucaoAtivaDaOrdem(ordem: OrderResponseDTO): ExecutionResponseDTO | undefined {

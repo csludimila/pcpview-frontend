@@ -1,5 +1,5 @@
 <div class="container-tracking tracking-page">
-    
+
     <div class="tracking-summary">
         <button class="summary-card" [class.active]="abaAtiva === 'aguardando'" (click)="mudarAba('aguardando')">
             <strong>Aguardando</strong>
@@ -17,7 +17,7 @@
     <div class="tracking-search">
         <input
           type="search"
-          placeholder="PESQUISAR OF, LOTE OU PRODUTO"
+          placeholder="PESQUISAR OF, LOTE, PRODUTO OU ETAPA"
           [(ngModel)]="termoPesquisa"
           aria-label="Pesquisar ordem de fabricação">
         <button type="button" class="btn btn-blue" *ngIf="temPesquisa()" (click)="termoPesquisa = ''">
@@ -37,14 +37,15 @@
         <div class="panel-header tracking-panel-title waiting">
             Ordens Aguardando Início
         </div>
-        
+
         <div class="data-table-container">
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Nº ORDEM / LOTE</th>
                         <th>PRODUTO</th>
-                        <th>MÁQUINA IDEAL</th>
+                        <th>ETAPA / SETOR</th>
+                        <th>CENTRO IDEAL</th>
                         <th>FILA</th>
                         <th>QUANTIDADE</th>
                         <th>STATUS</th>
@@ -52,14 +53,22 @@
                 </thead>
                 <tbody>
                     <tr *ngIf="ordensAguardandoFiltradas.length === 0">
-                        <td colspan="6" class="empty-cell">Nenhuma ordem encontrada.</td>
+                        <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
                     </tr>
                     <tr *ngFor="let ordem of ordensAguardandoFiltradas">
-                        <td class="lot-cell">{{ codigoLote(ordem) }}</td>
+                        <td class="lot-cell">
+                            <strong>{{ codigoLote(ordem) }}</strong>
+                            <div class="mini-route">
+                                <span *ngFor="let etapa of linhaProcesso(ordem)" [class]="classeEtapaRoteiro(etapa)">
+                                    {{ etapa.nomeEtapa || etapa.setor }}
+                                </span>
+                            </div>
+                        </td>
                         <td>{{ produtoOrdem(ordem) }}</td>
+                        <td>{{ etapaAtual(ordem) }}</td>
                         <td class="text-blue">{{ maquinaIdeal(ordem) }}</td>
                         <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
-                        <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
+                        <td class="quantity-cell">{{ quantidadeEtapa(ordem) }}</td>
                         <td><span class="status-badge status-aguardando">AGUARDANDO</span></td>
                     </tr>
                 </tbody>
@@ -71,14 +80,15 @@
         <div class="panel-header tracking-panel-title production">
             Produção em Andamento
         </div>
-        
+
         <div class="data-table-container">
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Nº ORDEM / LOTE</th>
                         <th>PRODUTO</th>
-                        <th>MÁQUINA</th>
+                        <th>ETAPA / SETOR</th>
+                        <th>CENTRO</th>
                         <th>OPERADOR</th>
                         <th>FILA</th>
                         <th>QUANTIDADE</th>
@@ -89,15 +99,23 @@
                 </thead>
                 <tbody>
                     <tr *ngIf="ordensProducaoFiltradas.length === 0">
-                        <td colspan="9" class="empty-cell">Nenhuma ordem encontrada.</td>
+                        <td colspan="10" class="empty-cell">Nenhuma ordem encontrada.</td>
                     </tr>
                     <tr *ngFor="let ordem of ordensProducaoFiltradas">
-                        <td class="lot-cell">{{ codigoLote(ordem) }}</td>
+                        <td class="lot-cell">
+                            <strong>{{ codigoLote(ordem) }}</strong>
+                            <div class="mini-route">
+                                <span *ngFor="let etapa of linhaProcesso(ordem)" [class]="classeEtapaRoteiro(etapa)">
+                                    {{ etapa.nomeEtapa || etapa.setor }}
+                                </span>
+                            </div>
+                        </td>
                         <td>{{ produtoOrdem(ordem) }}</td>
+                        <td>{{ etapaAtual(ordem) }}</td>
                         <td class="text-blue">{{ maquinaProducao(ordem) }}</td>
                         <td>{{ operadorProducao(ordem) }}</td>
                         <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
-                        <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
+                        <td class="quantity-cell">{{ quantidadeEtapa(ordem) }}</td>
                         <td>{{ formatarData(ordem.dataInicio) }}</td>
                         <td>{{ formatarDuracao(ordem.tempoProdutivoSegundos) }}</td>
                         <td><span [class]="classeStatusProducao(ordem)">{{ textoStatusProducao(ordem) }}</span></td>
@@ -111,13 +129,14 @@
         <div class="panel-header tracking-panel-title done">
             Serviços Finalizados
         </div>
-        
+
         <div class="data-table-container">
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Nº ORDEM / LOTE</th>
                         <th>PRODUTO</th>
+                        <th>PROCESSO</th>
                         <th>QUANTIDADE</th>
                         <th>INÍCIO</th>
                         <th>FIM</th>
@@ -131,11 +150,18 @@
                 </thead>
                 <tbody>
                     <tr *ngIf="ordensFinalizadasFiltradas.length === 0">
-                        <td colspan="11" class="empty-cell">Nenhum serviço encontrado.</td>
+                        <td colspan="12" class="empty-cell">Nenhum serviço encontrado.</td>
                     </tr>
                     <tr *ngFor="let ordem of ordensFinalizadasFiltradas">
                         <td class="lot-cell">{{ codigoFinalizado(ordem) }}</td>
                         <td>{{ produtoOrdem(ordem) }}</td>
+                        <td>
+                            <div class="mini-route">
+                                <span *ngFor="let etapa of linhaProcesso(ordem)" [class]="classeEtapaRoteiro(etapa)">
+                                    {{ etapa.nomeEtapa || etapa.setor }}
+                                </span>
+                            </div>
+                        </td>
                         <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
                         <td>{{ formatarData(ordem.dataInicio) }}</td>
                         <td>{{ formatarData(ordem.dataFim) }}</td>

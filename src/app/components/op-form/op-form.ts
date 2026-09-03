@@ -24,6 +24,8 @@ interface SubOrderOption extends SubOrderResponseDTO {
 export class OpFormComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
+  readonly setoresProcesso = ['CORTE', 'CALDEIRARIA', 'USINAGEM', 'ACABAMENTO', 'INSPECAO', 'EXPEDICAO'];
+
   listaDeMaquinas: MachineResponseDTO[] = [];
   listaDeOrdens: SubOrderOption[] = [];
   listaDeExecucoes: ExecutionResponseDTO[] = [];
@@ -32,6 +34,7 @@ export class OpFormComponent implements OnInit {
   mensagemFeedback: string = '';
 
   opForm = new FormGroup({
+    setor: new FormControl('', Validators.required),
     idMaquina: new FormControl('', Validators.required),
     idEtapaSubOrdem: new FormControl('', Validators.required),
     quantidadeProduzida: new FormControl(1, [Validators.required, Validators.min(1)]),
@@ -48,6 +51,13 @@ export class OpFormComponent implements OnInit {
     this.carregarOrdensPlanejadas();
     this.carregarExecucoes();
 
+    this.opForm.get('setor')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.validarMaquinaSelecionadaParaSetor();
+        this.validarSubOrdemSelecionadaParaMaquina(this.opForm.controls.idMaquina.value);
+      });
+
     this.opForm.get('idMaquina')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => {
@@ -56,7 +66,10 @@ export class OpFormComponent implements OnInit {
 
     this.opForm.get('idEtapaSubOrdem')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.atualizarExecucaoAtualPorSelecao());
+      .subscribe(() => {
+        this.sincronizarSetorPelaSubOrdem();
+        this.atualizarExecucaoAtualPorSelecao();
+      });
 
     interval(8000)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -81,13 +94,14 @@ export class OpFormComponent implements OnInit {
     }
 
     this.maquinaSelecionada = this.listaDeMaquinas.find(m => m.id === id);
+    this.sincronizarSetorPelaMaquina();
     this.validarSubOrdemSelecionadaParaMaquina(id);
     this.selecionarExecucaoAtivaDaMaquina(id);
 
     if (this.maquinaSelecionada?.statusOperacional === 'TRABALHANDO') {
-      this.mensagemFeedback = 'Atenção: Esta máquina já está trabalhando.';
+      this.mensagemFeedback = 'Atenção: Este centro já está trabalhando.';
     } else if (this.maquinaSelecionada && !this.maquinaSelecionada.operacional) {
-      this.mensagemFeedback = 'Atenção: Esta máquina está em manutenção.';
+      this.mensagemFeedback = 'Atenção: Este centro está em manutenção.';
     } else {
       this.mensagemFeedback = '';
     }
@@ -99,7 +113,7 @@ export class OpFormComponent implements OnInit {
         this.listaDeMaquinas = dados;
         this.atualizarStatusMaquina(this.opForm.controls.idMaquina.value);
       },
-      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar máquinas.')
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar centros.')
     });
   }
 
@@ -109,10 +123,12 @@ export class OpFormComponent implements OnInit {
         const codigoSelecionado = this.opForm.controls.idEtapaSubOrdem.value;
         this.listaDeOrdens = ordens.flatMap((ordem: OrderResponseDTO) =>
           (ordem.subOrdens || [])
-            .filter((subOrdem) =>
-              (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0) &&
-              (subOrdem.status === 'AGUARDANDO' || !subOrdem.status || subOrdem.codigoEtapa === codigoSelecionado || this.subOrdemTemExecucaoAberta(subOrdem.codigoEtapa))
-            )
+            .filter((subOrdem) => {
+              const temSaldo = (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0);
+              const execucaoAberta = this.subOrdemTemExecucaoAberta(subOrdem.codigoEtapa);
+              const liberada = subOrdem.status === 'AGUARDANDO' || !subOrdem.status;
+              return temSaldo && (liberada || execucaoAberta || subOrdem.codigoEtapa === codigoSelecionado && execucaoAberta);
+            })
             .map((subOrdem) => ({
               ...subOrdem,
               ordemNumero: ordem.numeroOrdem || '',
@@ -126,11 +142,32 @@ export class OpFormComponent implements OnInit {
     });
   }
 
+  get setoresDisponiveis(): string[] {
+    const setoresDasMaquinas = this.listaDeMaquinas.map((maquina) => this.setorDaMaquina(maquina));
+    const setoresDasOrdens = this.listaDeOrdens.map((ordem) => this.normalizarSetor(ordem.setor));
+    const todos = new Set([...this.setoresProcesso, ...setoresDasMaquinas, ...setoresDasOrdens]);
+    return [
+      ...this.setoresProcesso.filter((setor) => todos.has(setor)),
+      ...Array.from(todos).filter((setor) => !this.setoresProcesso.includes(setor)).sort()
+    ];
+  }
+
+  get maquinasDisponiveisOperacao(): MachineResponseDTO[] {
+    const setor = this.normalizarSetor(this.opForm.controls.setor.value, '');
+    return this.listaDeMaquinas
+      .filter((maquina) => !setor || this.setorDaMaquina(maquina) === setor)
+      .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+  }
+
   get ordensDisponiveisParaMaquina(): SubOrderOption[] {
     const maquinaId = this.opForm.controls.idMaquina.value;
-    const ordens = !maquinaId
-      ? this.listaDeOrdens
-      : this.listaDeOrdens.filter((ordem) => !ordem.maquinaIdealId || ordem.maquinaIdealId === maquinaId);
+    const setor = this.normalizarSetor(this.opForm.controls.setor.value, '');
+    const maquina = this.listaDeMaquinas.find((item) => item.id === maquinaId);
+
+    const ordens = this.listaDeOrdens
+      .filter((ordem) => !setor || this.normalizarSetor(ordem.setor) === setor)
+      .filter((ordem) => !maquina || this.itemCompativelComMaquina(ordem, maquina))
+      .filter((ordem) => !maquinaId || !ordem.maquinaIdealId || ordem.maquinaIdealId === maquinaId);
 
     return [...ordens].sort((a, b) => {
       const aPrioridade = this.prioridadeOrdem(a, maquinaId);
@@ -154,15 +191,40 @@ export class OpFormComponent implements OnInit {
     return 2;
   }
 
-  private validarSubOrdemSelecionadaParaMaquina(maquinaId: string | null | undefined) {
-    const codigoSelecionado = this.opForm.controls.idEtapaSubOrdem.value;
-    if (!codigoSelecionado || !maquinaId) return;
+  private validarMaquinaSelecionadaParaSetor() {
+    const maquinaId = this.opForm.controls.idMaquina.value;
+    const setor = this.normalizarSetor(this.opForm.controls.setor.value, '');
+    if (!maquinaId || !setor) return;
 
-    const selecionada = this.listaDeOrdens.find((ordem) => ordem.codigoEtapa === codigoSelecionado);
-    if (selecionada?.maquinaIdealId && selecionada.maquinaIdealId !== maquinaId) {
-      this.opForm.controls.idEtapaSubOrdem.setValue('');
+    const maquina = this.listaDeMaquinas.find((item) => item.id === maquinaId);
+    if (maquina && this.setorDaMaquina(maquina) !== setor) {
+      this.opForm.controls.idMaquina.setValue('');
+      this.maquinaSelecionada = undefined;
       this.execucaoAtual = undefined;
     }
+  }
+
+  private validarSubOrdemSelecionadaParaMaquina(maquinaId: string | null | undefined) {
+    const codigoSelecionado = this.opForm.controls.idEtapaSubOrdem.value;
+    if (!codigoSelecionado) return;
+
+    const selecionada = this.listaDeOrdens.find((ordem) => ordem.codigoEtapa === codigoSelecionado);
+    const maquina = this.listaDeMaquinas.find((item) => item.id === maquinaId);
+
+    if (!selecionada) return;
+    if (maquina && !this.itemCompativelComMaquina(selecionada, maquina)) {
+      this.limparSubOrdemSelecionada();
+      return;
+    }
+
+    if (maquinaId && selecionada.maquinaIdealId && selecionada.maquinaIdealId !== maquinaId) {
+      this.limparSubOrdemSelecionada();
+    }
+  }
+
+  private limparSubOrdemSelecionada() {
+    this.opForm.controls.idEtapaSubOrdem.setValue('');
+    this.execucaoAtual = undefined;
   }
 
   private subOrdemTemExecucaoAberta(codigoEtapa: string | undefined): boolean {
@@ -192,12 +254,16 @@ export class OpFormComponent implements OnInit {
     if (execucaoAberta.subOrdemId && this.opForm.controls.idEtapaSubOrdem.value !== execucaoAberta.subOrdemId) {
       this.opForm.controls.idEtapaSubOrdem.setValue(execucaoAberta.subOrdemId, { emitEvent: false });
     }
+    if (execucaoAberta.setor) {
+      this.opForm.controls.setor.setValue(this.normalizarSetor(execucaoAberta.setor), { emitEvent: false });
+    }
   }
 
   textoOpcaoOrdem(ordem: SubOrderOption): string {
     const proxima = this.proximaOrdemDaFila?.codigoEtapa === ordem.codigoEtapa ? 'Próxima | ' : '';
-    const fila = ordem.maquinaIdealId ? `Fila ${this.posicaoAtualNaFila(ordem) || ordem.posicaoFila || '-'}` : 'Sem máquina';
-    return `${proxima}${ordem.codigoEtapa} | ${ordem.quantidadeProduzida || 0} / ${ordem.quantidadeTotal} peças | ${fila}`;
+    const fila = ordem.maquinaIdealId ? `Fila ${this.posicaoAtualNaFila(ordem) || ordem.posicaoFila || '-'}` : 'Sem centro';
+    const etapa = `${ordem.nomeEtapa || ordem.setor || 'ETAPA'} / ${this.textoSetor(ordem.setor)}`;
+    return `${proxima}${ordem.codigoEtapa} | ${etapa} | ${ordem.quantidadeProduzida || 0} / ${ordem.quantidadeTotal} peças | ${fila}`;
   }
 
   private posicaoAtualNaFila(ordem: SubOrderOption): number | null {
@@ -221,14 +287,15 @@ export class OpFormComponent implements OnInit {
 
   get resumoFilaSelecionada(): string {
     const maquinaId = this.opForm.controls.idMaquina.value;
-    if (!maquinaId) return 'Selecione uma máquina para visualizar a fila disponível.';
+    const setor = this.textoSetor(this.opForm.controls.setor.value);
+    if (!maquinaId) return `Selecione um centro de ${setor} para visualizar a fila disponível.`;
 
-    const maquina = this.listaDeMaquinas.find((item) => item.id === maquinaId)?.nome || 'máquina selecionada';
+    const maquina = this.listaDeMaquinas.find((item) => item.id === maquinaId)?.nome || 'centro selecionado';
     const total = this.ordensDisponiveisParaMaquina.length;
-    if (total === 0) return `Nenhuma OF disponível para ${maquina}.`;
+    if (total === 0) return `Nenhuma etapa disponível para ${maquina}.`;
 
     const primeira = this.ordensDisponiveisParaMaquina[0];
-    const prefixo = total === 1 ? '1 OF disponível' : `${total} OFs disponíveis`;
+    const prefixo = total === 1 ? '1 etapa disponível' : `${total} etapas disponíveis`;
     return `${prefixo} para ${maquina}. Próxima: ${primeira.codigoEtapa || '-'}.`;
   }
 
@@ -259,7 +326,17 @@ export class OpFormComponent implements OnInit {
   }
 
   get loteSelecionado(): string {
-    return this.subOrdemSelecionada?.codigoEtapa || '-';
+    return this.subOrdemSelecionada?.codigoEtapa || this.execucaoAtual?.subOrdemId || '-';
+  }
+
+  get etapaSelecionada(): string {
+    const subOrdem = this.subOrdemSelecionada;
+    return subOrdem?.nomeEtapa || this.execucaoAtual?.nomeEtapa || '-';
+  }
+
+  get setorSelecionadoTexto(): string {
+    const subOrdem = this.subOrdemSelecionada;
+    return this.textoSetor(subOrdem?.setor || this.execucaoAtual?.setor || this.opForm.controls.setor.value);
   }
 
   get produtoSelecionado(): string {
@@ -390,25 +467,25 @@ export class OpFormComponent implements OnInit {
     const idMaquina = this.opForm.controls.idMaquina.value;
 
     if (!idMaquina || !this.podeEnviarManutencao) {
-      this.mensagemFeedback = 'Selecione uma máquina disponível ou trabalhando para enviar para manutenção.';
+      this.mensagemFeedback = 'Selecione um centro disponível ou trabalhando para enviar para manutenção.';
       return;
     }
 
     if (this.maquinaSelecionada?.statusOperacional === 'MANUTENCAO') {
-      this.mensagemFeedback = 'Esta máquina já está em manutenção.';
+      this.mensagemFeedback = 'Este centro já está em manutenção.';
       return;
     }
 
     this.machineService.enviarParaManutencao(idMaquina).subscribe({
       next: () => {
-        this.mensagemFeedback = 'Máquina enviada para manutenção. A OF ativa voltou para a fila.';
+        this.mensagemFeedback = 'Centro enviado para manutenção. A etapa ativa voltou para a fila.';
         this.execucaoAtual = undefined;
         this.opForm.patchValue({ idEtapaSubOrdem: '', quantidadeProduzida: 1, setupPrimeiraPeca: false });
         this.carregarMaquinas();
         this.carregarOrdensPlanejadas();
         this.carregarExecucoes();
       },
-      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao enviar máquina para manutenção.')
+      error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao enviar centro para manutenção.')
     });
   }
 
@@ -460,7 +537,7 @@ export class OpFormComponent implements OnInit {
         this.mensagemFeedback = 'Apontamento finalizado com sucesso!';
         this.listaDeExecucoes = this.listaDeExecucoes.filter((item) => item.id !== this.execucaoAtual?.id);
         this.execucaoAtual = undefined;
-        this.opForm.reset({ idMaquina: '', idEtapaSubOrdem: '', quantidadeProduzida: 1, setupPrimeiraPeca: false });
+        this.opForm.reset({ setor: '', idMaquina: '', idEtapaSubOrdem: '', quantidadeProduzida: 1, setupPrimeiraPeca: false });
         this.carregarMaquinas();
         this.carregarOrdensPlanejadas();
         this.carregarExecucoes();
@@ -479,5 +556,42 @@ export class OpFormComponent implements OnInit {
     if (horas > 0) return `${horas}h ${minutos}min ${seg}s`;
     if (minutos > 0) return `${minutos}min ${seg}s`;
     return `${seg}s`;
+  }
+
+  textoSetor(setor?: string | null): string {
+    const normalizado = this.normalizarSetor(setor);
+    if (normalizado === 'INSPECAO') return 'INSPEÇÃO';
+    if (normalizado === 'EXPEDICAO') return 'EXPEDIÇÃO';
+    return normalizado;
+  }
+
+  private sincronizarSetorPelaMaquina() {
+    if (!this.maquinaSelecionada) return;
+    const setor = this.setorDaMaquina(this.maquinaSelecionada);
+    if (this.opForm.controls.setor.value !== setor) {
+      this.opForm.controls.setor.setValue(setor, { emitEvent: false });
+    }
+  }
+
+  private sincronizarSetorPelaSubOrdem() {
+    const subOrdem = this.subOrdemSelecionada;
+    if (!subOrdem?.setor) return;
+    const setor = this.normalizarSetor(subOrdem.setor);
+    if (this.opForm.controls.setor.value !== setor) {
+      this.opForm.controls.setor.setValue(setor, { emitEvent: false });
+    }
+  }
+
+  private itemCompativelComMaquina(ordem: SubOrderOption, maquina: MachineResponseDTO): boolean {
+    return this.normalizarSetor(ordem.setor) === this.setorDaMaquina(maquina);
+  }
+
+  private setorDaMaquina(maquina: MachineResponseDTO): string {
+    return this.normalizarSetor(maquina.setor);
+  }
+
+  private normalizarSetor(valor?: string | null, padrao = 'USINAGEM'): string {
+    const normalizado = (valor || '').trim().toUpperCase();
+    return normalizado || padrao;
   }
 }

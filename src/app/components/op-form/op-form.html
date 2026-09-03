@@ -4,26 +4,36 @@
             <span class="op-icon">OP</span>
             <h3>IHM Operação</h3>
         </div>
-        
+
         <form [formGroup]="opForm">
             <div class="form-group">
-                <label for="op-machine">MÁQUINA EM USO</label>
-                <select id="op-machine" formControlName="idMaquina" (change)="verificarStatusMaquina()">
-                    <option value="" disabled selected>Selecione a máquina</option>
-                    <option *ngFor="let maq of listaDeMaquinas" [value]="maq.id">{{ maq.nome }}</option>
+                <label for="op-sector">SETOR DO PROCESSO</label>
+                <select id="op-sector" formControlName="setor">
+                    <option value="" disabled selected>Selecione o setor</option>
+                    <option *ngFor="let setor of setoresDisponiveis" [value]="setor">{{ textoSetor(setor) }}</option>
                 </select>
-                
+            </div>
+
+            <div class="form-group">
+                <label for="op-machine">CENTRO EM USO</label>
+                <select id="op-machine" formControlName="idMaquina" (change)="verificarStatusMaquina()">
+                    <option value="" disabled selected>Selecione o centro</option>
+                    <option *ngFor="let maq of maquinasDisponiveisOperacao" [value]="maq.id">
+                        {{ maq.nome }} · {{ textoSetor(maq.setor) }}
+                    </option>
+                </select>
+
                 <div *ngIf="maquinaSelecionada" class="machine-state-row">
                     <span class="badge" [ngClass]="classeStatusMaquinaSelecionada">
                         {{ textoStatusMaquinaSelecionada }}
                     </span>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="op-sub-order">ORDEM DE SERVIÇO (LOTE)</label>
                 <select id="op-sub-order" formControlName="idEtapaSubOrdem">
-                    <option value="" disabled selected>Selecione a sub-ordem</option>
+                    <option value="" disabled selected>Selecione a etapa liberada</option>
                     <option *ngFor="let ord of ordensDisponiveisParaMaquina" [value]="ord.codigoEtapa">
                         {{ textoOpcaoOrdem(ord) }}
                     </option>
@@ -34,7 +44,7 @@
             <div *ngIf="proximaOrdemDaFila" class="next-queue-strip">
                 <span>Próxima da fila</span>
                 <strong>{{ proximaOrdemDaFila.codigoEtapa }}</strong>
-                <em>{{ proximaOrdemDaFila.quantidadeProduzida || 0 }} / {{ proximaOrdemDaFila.quantidadeTotal }} peças</em>
+                <em>{{ proximaOrdemDaFila.nomeEtapa || proximaOrdemDaFila.setor }} · {{ proximaOrdemDaFila.quantidadeProduzida || 0 }} / {{ proximaOrdemDaFila.quantidadeTotal }} peças</em>
             </div>
 
             <div *ngIf="avisoOrdemForaDaFila" class="queue-warning">
@@ -43,6 +53,8 @@
 
             <div id="ihm-display-info" class="of-ativa-text">
                 <p>OF / LOTE: <span>{{ loteSelecionado }}</span></p>
+                <p>SETOR: <span>{{ setorSelecionadoTexto }}</span></p>
+                <p>ETAPA: <span>{{ etapaSelecionada }}</span></p>
                 <p>PRODUTO: <span>{{ produtoSelecionado }}</span></p>
                 <p>STATUS ATUAL: <span class="status-ok">{{ saldoSelecionado }}</span></p>
                 <p>EXECUÇÃO: <span>{{ execucaoAtual?.id || '-' }}</span></p>

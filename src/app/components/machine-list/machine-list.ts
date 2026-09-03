@@ -11,6 +11,7 @@ import { AuthService } from '../../services/auth.service';
 
 interface QueueItem extends SubOrderResponseDTO {
   ordemNumero: string;
+  produtoNome?: string;
 }
 
 @Component({
@@ -26,6 +27,8 @@ export class MachineListComponent implements OnInit {
   private authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
+  readonly setoresProcesso = ['CORTE', 'CALDEIRARIA', 'USINAGEM', 'ACABAMENTO', 'INSPECAO', 'EXPEDICAO'];
+
   maquinas: MachineDTO[] = [];
   ordens: OrderResponseDTO[] = [];
   itensFila: QueueItem[] = [];
@@ -34,6 +37,7 @@ export class MachineListComponent implements OnInit {
   isCarregando = false;
   mensagemFeedback = '';
   novaMaquinaNome = '';
+  novoCentroSetor = 'USINAGEM';
   itemArrastado?: QueueItem;
   maquinaExclusaoPendente = '';
   maquinaEdicaoId = '';
@@ -75,7 +79,7 @@ export class MachineListComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar máquinas.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar centros de trabalho.');
         if (!silencioso) {
           this.isCarregando = false;
         }
@@ -95,7 +99,8 @@ export class MachineListComponent implements OnInit {
             )
             .map((subOrdem) => ({
               ...subOrdem,
-              ordemNumero: ordem.numeroOrdem || ''
+              ordemNumero: ordem.numeroOrdem || '',
+              produtoNome: ordem.produtoNome
             }))
         );
       },
@@ -122,14 +127,51 @@ export class MachineListComponent implements OnInit {
     return this.authService.isAdmin();
   }
 
+  get setoresVisiveis(): string[] {
+    const setoresCadastrados = new Set(this.maquinas.map((maquina) => this.setorDaMaquina(maquina)));
+    return [
+      ...this.setoresProcesso.filter((setor) => setoresCadastrados.has(setor)),
+      ...Array.from(setoresCadastrados).filter((setor) => !this.setoresProcesso.includes(setor)).sort()
+    ];
+  }
+
+  maquinasPorSetor(setor: string): MachineDTO[] {
+    return this.maquinas
+      .filter((maquina) => this.setorDaMaquina(maquina) === setor)
+      .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+  }
+
   filaDaMaquina(machineId: string): QueueItem[] {
     return this.itensFila
       .filter((item) => item.maquinaIdealId === machineId)
       .sort((a, b) => (a.posicaoFila || 0) - (b.posicaoFila || 0));
   }
 
+  itensDisponiveisParaMaquina(maq: MachineDTO): QueueItem[] {
+    const setor = this.setorDaMaquina(maq);
+    return this.itensFila
+      .filter((item) => item.maquinaIdealId !== maq.id)
+      .filter((item) => this.itemCompativelComSetor(item, setor))
+      .sort((a, b) => (a.codigoEtapa || '').localeCompare(b.codigoEtapa || ''));
+  }
+
   textoQuantidadeOF(total: number): string {
     return total === 1 ? '1 OF' : `${total} OFs`;
+  }
+
+  textoSetor(setor?: string | null): string {
+    const normalizado = this.normalizarSetor(setor);
+    if (normalizado === 'INSPECAO') return 'INSPEÇÃO';
+    if (normalizado === 'EXPEDICAO') return 'EXPEDIÇÃO';
+    return normalizado;
+  }
+
+  textoEtapaItem(item: SubOrderResponseDTO): string {
+    return `${item.nomeEtapa || item.setor || 'ETAPA'} · ${this.textoSetor(item.setor)}`;
+  }
+
+  textoProdutoItem(item: QueueItem): string {
+    return item.produtoNome || item.ordemNumero || '-';
   }
 
   statusMaquina(maq: MachineDTO): 'DISPONIVEL' | 'TRABALHANDO' | 'MANUTENCAO' {
@@ -157,6 +199,12 @@ export class MachineListComponent implements OnInit {
 
   textoOFAtiva(maq: MachineDTO): string {
     return this.execucaoAtivaDaMaquina(maq)?.subOrdemId || '-';
+  }
+
+  textoEtapaAtiva(maq: MachineDTO): string {
+    const execucao = this.execucaoAtivaDaMaquina(maq);
+    const subOrdem = this.subOrdemAtivaDaMaquina(maq);
+    return execucao?.nomeEtapa || subOrdem?.nomeEtapa || '-';
   }
 
   textoOperadorAtivo(maq: MachineDTO): string {
@@ -208,7 +256,7 @@ export class MachineListComponent implements OnInit {
   adicionarNaFila(machineId: string) {
     const codigoEtapa = this.selecaoFilaPorMaquina[machineId];
     if (!codigoEtapa) {
-      this.mensagemFeedback = 'Selecione uma ordem para adicionar na fila.';
+      this.mensagemFeedback = 'Selecione uma etapa para adicionar na fila.';
       return;
     }
 
@@ -216,12 +264,12 @@ export class MachineListComponent implements OnInit {
     this.executionOrderService.alterarMaquinaIdeal(codigoEtapa, machineId).subscribe({
       next: () => {
         this.selecaoFilaPorMaquina[machineId] = '';
-        this.mensagemFeedback = 'Ordem adicionada à fila da máquina.';
+        this.mensagemFeedback = 'Etapa adicionada à fila do centro.';
         this.carregarOrdens();
         this.isCarregando = false;
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao adicionar ordem à fila.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao adicionar etapa à fila.');
         this.isCarregando = false;
       }
     });
@@ -233,12 +281,12 @@ export class MachineListComponent implements OnInit {
     this.isCarregando = true;
     this.executionOrderService.removerDaFila(codigoEtapa).subscribe({
       next: () => {
-        this.mensagemFeedback = 'Ordem removida da fila.';
+        this.mensagemFeedback = 'Etapa removida da fila.';
         this.carregarOrdens();
         this.isCarregando = false;
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao remover ordem da fila.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao remover etapa da fila.');
         this.isCarregando = false;
       }
     });
@@ -280,33 +328,17 @@ export class MachineListComponent implements OnInit {
     this.itemArrastado = undefined;
   }
 
-  private salvarOrdemFila(machineId: string, fila: QueueItem[]) {
-    const codigosEtapa = fila.map((item) => item.codigoEtapa).filter((codigo): codigo is string => !!codigo);
-    if (codigosEtapa.length === 0) return;
-
-    this.isCarregando = true;
-    this.executionOrderService.reordenarFila(machineId, codigosEtapa).subscribe({
-      next: () => {
-        this.mensagemFeedback = 'Fila reordenada com sucesso.';
-        this.itemArrastado = undefined;
-        this.carregarOrdens();
-        this.isCarregando = false;
-      },
-      error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao reordenar fila.');
-        this.itemArrastado = undefined;
-        this.isCarregando = false;
-      }
-    });
-  }
-
   adicionarMaquina() {
-    if (!this.novaMaquinaNome.trim()) return;
+    const nome = this.novaMaquinaNome.trim().toUpperCase();
+    if (!nome) return;
 
     this.isCarregando = true;
+    const setor = this.normalizarSetor(this.novoCentroSetor);
     const novaMaq: MachineDTO = {
-      id: 'MAQ-' + Math.floor(Math.random() * 10000), 
-      nome: this.novaMaquinaNome.toUpperCase()
+      id: `${this.siglaSetor(setor)}-${Date.now().toString().slice(-6)}`,
+      nome,
+      setor,
+      tipoCentro: setor
     };
 
     this.machineService.registrarMaquina(novaMaq).subscribe({
@@ -315,7 +347,7 @@ export class MachineListComponent implements OnInit {
         this.carregarMaquinas();
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao adicionar máquina.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao adicionar centro.');
         this.isCarregando = false;
       }
     });
@@ -325,20 +357,20 @@ export class MachineListComponent implements OnInit {
     if (this.maquinaExclusaoPendente !== id) {
       this.maquinaExclusaoPendente = id;
       this.cancelarEdicaoMaquina();
-      this.mensagemFeedback = 'Clique novamente em excluir para confirmar a remoção da máquina.';
+      this.mensagemFeedback = 'Clique novamente em excluir para confirmar a remoção do centro.';
       return;
     }
-    
+
     this.isCarregando = true;
     this.mensagemFeedback = '';
     this.machineService.deletarMaquina(id).subscribe({
       next: () => {
         this.maquinaExclusaoPendente = '';
-        this.mensagemFeedback = 'Máquina excluída com sucesso.';
+        this.mensagemFeedback = 'Centro excluído com sucesso.';
         this.carregarMaquinas();
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir máquina.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir centro.');
         this.maquinaExclusaoPendente = '';
         this.isCarregando = false;
       }
@@ -353,7 +385,7 @@ export class MachineListComponent implements OnInit {
         this.carregarOrdens();
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao alternar o status da máquina.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao alternar o status do centro.');
         this.isCarregando = false;
       }
     });
@@ -378,7 +410,7 @@ export class MachineListComponent implements OnInit {
     const nome = this.nomeMaquinaEditado.trim().toUpperCase();
 
     if (!id || !nome) {
-      this.mensagemFeedback = 'Informe um nome válido para a máquina.';
+      this.mensagemFeedback = 'Informe um nome válido para o centro.';
       return;
     }
 
@@ -390,14 +422,60 @@ export class MachineListComponent implements OnInit {
     this.isCarregando = true;
     this.machineService.alterarNome(id, { nome }).subscribe({
       next: () => {
-        this.mensagemFeedback = 'Nome da máquina atualizado com sucesso.';
+        this.mensagemFeedback = 'Nome do centro atualizado com sucesso.';
         this.cancelarEdicaoMaquina();
         this.carregarMaquinas();
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar nome da máquina.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar nome do centro.');
         this.isCarregando = false;
       }
     });
+  }
+
+  private salvarOrdemFila(machineId: string, fila: QueueItem[]) {
+    const codigosEtapa = fila.map((item) => item.codigoEtapa).filter((codigo): codigo is string => !!codigo);
+    if (codigosEtapa.length === 0) return;
+
+    this.isCarregando = true;
+    this.executionOrderService.reordenarFila(machineId, codigosEtapa).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Fila reordenada com sucesso.';
+        this.itemArrastado = undefined;
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao reordenar fila.');
+        this.itemArrastado = undefined;
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  private setorDaMaquina(maquina: MachineDTO): string {
+    return this.normalizarSetor(maquina.setor);
+  }
+
+  private itemCompativelComSetor(item: QueueItem, setor: string): boolean {
+    const setorItem = this.normalizarSetor(item.setor);
+    return !item.setor || setorItem === setor;
+  }
+
+  private normalizarSetor(valor?: string | null): string {
+    return (valor || 'USINAGEM').trim().toUpperCase();
+  }
+
+  private siglaSetor(setor: string): string {
+    const mapa: Record<string, string> = {
+      CORTE: 'COR',
+      CALDEIRARIA: 'CAL',
+      USINAGEM: 'USI',
+      ACABAMENTO: 'ACA',
+      INSPECAO: 'INS',
+      EXPEDICAO: 'EXP'
+    };
+
+    return mapa[setor] || setor.slice(0, 3);
   }
 }

@@ -1,12 +1,15 @@
 <div class="machine-page">
   <div class="machine-page-header">
-      <h2>Status das Máquinas</h2>
+      <h2>Status dos Centros de Trabalho</h2>
 
       <div class="add-machine-area" *ngIf="isAdmin">
+          <select class="sector-select" [(ngModel)]="novoCentroSetor" aria-label="Setor do novo centro">
+              <option *ngFor="let setor of setoresProcesso" [value]="setor">{{ textoSetor(setor) }}</option>
+          </select>
           <input
             type="text"
             class="search-bar"
-            placeholder="NOME DA NOVA MÁQUINA"
+            placeholder="NOME DO NOVO CENTRO"
             [(ngModel)]="novaMaquinaNome"
             (keyup.enter)="adicionarMaquina()">
           <button class="btn btn-blue" (click)="adicionarMaquina()" [disabled]="isCarregando">
@@ -20,9 +23,9 @@
   </div>
 
   <div *ngIf="itensSemMaquina.length > 0" class="panel sem-maquina-panel">
-          <div class="queue-panel-header">
-              <div>
-                  <h3>OFs sem máquina definida</h3>
+      <div class="queue-panel-header">
+          <div>
+              <h3>Etapas sem centro definido</h3>
               <span>{{ textoQuantidadeOF(itensSemMaquina.length) }} aguardando direcionamento</span>
           </div>
       </div>
@@ -30,130 +33,145 @@
           <div class="queue-item" *ngFor="let item of itensSemMaquina">
               <div>
                   <strong>{{ item.codigoEtapa }}</strong>
-                  <span>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</span>
+                  <span>{{ textoEtapaItem(item) }} · {{ textoProdutoItem(item) }}</span>
+                  <small>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</small>
               </div>
           </div>
       </div>
   </div>
 
   <div *ngIf="maquinas.length === 0 && !isCarregando" class="empty-message">
-      Nenhuma máquina cadastrada. Adicione uma acima.
+      Nenhum centro cadastrado. Adicione um acima.
   </div>
 
   <div *ngIf="isCarregando" class="empty-message" style="color: var(--accent);">
       Comunicando com o servidor...
   </div>
 
-  <div class="machine-grid" *ngIf="maquinas.length > 0">
-      <div class="machine-card" *ngFor="let maq of maquinas">
-          <div class="machine-title-row">
-              <ng-container *ngIf="maquinaEdicaoId === maq.id; else tituloMaquina">
-                  <div class="machine-edit-area">
-                      <input
-                        type="text"
-                        class="machine-edit-input"
-                        [(ngModel)]="nomeMaquinaEditado"
-                        (keyup.enter)="salvarNomeMaquina(maq)"
-                        (keyup.escape)="cancelarEdicaoMaquina()">
-                      <div class="machine-edit-actions">
-                          <button type="button" class="icon-btn save-btn" title="Salvar nome" (click)="salvarNomeMaquina(maq)">✓</button>
-                          <button type="button" class="icon-btn cancel-btn" title="Cancelar edição" (click)="cancelarEdicaoMaquina()">×</button>
+  <section class="sector-band" *ngFor="let setor of setoresVisiveis">
+      <div class="sector-title">
+          <h3>{{ textoSetor(setor) }}</h3>
+          <span>{{ maquinasPorSetor(setor).length }} centros</span>
+      </div>
+
+      <div class="machine-grid">
+          <div class="machine-card" *ngFor="let maq of maquinasPorSetor(setor)">
+              <div class="machine-title-row">
+                  <ng-container *ngIf="maquinaEdicaoId === maq.id; else tituloMaquina">
+                      <div class="machine-edit-area">
+                          <input
+                            type="text"
+                            class="machine-edit-input"
+                            [(ngModel)]="nomeMaquinaEditado"
+                            (keyup.enter)="salvarNomeMaquina(maq)"
+                            (keyup.escape)="cancelarEdicaoMaquina()">
+                          <div class="machine-edit-actions">
+                              <button type="button" class="icon-btn save-btn" title="Salvar nome" (click)="salvarNomeMaquina(maq)">✓</button>
+                              <button type="button" class="icon-btn cancel-btn" title="Cancelar edição" (click)="cancelarEdicaoMaquina()">×</button>
+                          </div>
                       </div>
-                  </div>
-              </ng-container>
-              <ng-template #tituloMaquina>
-                  <h3>{{ maq.nome }}</h3>
-              </ng-template>
-              <span class="queue-counter">{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
-              <div class="machine-card-actions" *ngIf="isAdmin">
-                  <button
-                    type="button"
-                    class="icon-btn edit-btn"
-                    title="Editar nome da máquina"
-                    *ngIf="maquinaEdicaoId !== maq.id"
-                    (click)="iniciarEdicaoMaquina(maq)">
-                      ✎
-                  </button>
-                  <button
-                    type="button"
-                    class="icon-btn delete-btn"
-                    [class.confirming]="maquinaExclusaoPendente === maq.id"
-                    [title]="maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão' : 'Excluir máquina'"
-                    (click)="excluirMaquina(maq.id)">
-                      {{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}
-                  </button>
-              </div>
-          </div>
-
-          <div class="status-area">
-              <span class="status-label">Status: </span>
-              <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
-              <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
-          </div>
-
-          <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)">
-              <div>
-                  <span>OF em produção</span>
-                  <strong>{{ textoOFAtiva(maq) }}</strong>
-              </div>
-              <div>
-                  <span>Operador</span>
-                  <strong>{{ textoOperadorAtivo(maq) }}</strong>
-              </div>
-              <div>
-                  <span>Quantidade</span>
-                  <strong>{{ textoQuantidadeAtiva(maq) }}</strong>
-                  <small>{{ textoRestanteAtivo(maq) }}</small>
-              </div>
-          </div>
-
-          <button *ngIf="isAdmin" class="btn-toggle-status" (click)="alternarStatus(maq.id)">
-              {{ maq.operacional ? 'Enviar para Manutenção' : 'Liberar Máquina' }}
-          </button>
-
-          <div class="queue-section">
-              <div class="queue-section-title">
-                  <h4>Fila de Produção</h4>
-                  <span>{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
-              </div>
-
-              <div class="queue-list" *ngIf="filaDaMaquina(maq.id).length > 0; else filaVazia">
-                  <div
-                    class="queue-item"
-                    *ngFor="let item of filaDaMaquina(maq.id); let i = index"
-                    [class.dragging]="itemArrastado?.codigoEtapa === item.codigoEtapa"
-                    [attr.draggable]="isAdmin"
-                    (dragstart)="iniciarArraste(item)"
-                    (dragover)="permitirSoltar($event)"
-                    (drop)="soltarNaFila(maq.id, item)"
-                    (dragend)="finalizarArraste()">
+                  </ng-container>
+                  <ng-template #tituloMaquina>
                       <div>
-                          <strong>{{ i + 1 }}. {{ item.codigoEtapa }}</strong>
-                          <span>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</span>
+                          <h3>{{ maq.nome }}</h3>
+                          <span class="machine-sector-pill">{{ textoSetor(maq.setor) }}</span>
                       </div>
-                      <button *ngIf="isAdmin" class="queue-remove-btn" title="Tirar da fila" (click)="removerDaFila(item.codigoEtapa)">×</button>
+                  </ng-template>
+                  <span class="queue-counter">{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
+                  <div class="machine-card-actions" *ngIf="isAdmin">
+                      <button
+                        type="button"
+                        class="icon-btn edit-btn"
+                        title="Editar nome do centro"
+                        *ngIf="maquinaEdicaoId !== maq.id"
+                        (click)="iniciarEdicaoMaquina(maq)">
+                          ✎
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-btn delete-btn"
+                        [class.confirming]="maquinaExclusaoPendente === maq.id"
+                        [title]="maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão' : 'Excluir centro'"
+                        (click)="excluirMaquina(maq.id)">
+                          {{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}
+                      </button>
                   </div>
               </div>
 
-              <ng-template #filaVazia>
-                  <div class="queue-empty">Sem ordens na fila.</div>
-              </ng-template>
+              <div class="status-area">
+                  <span class="status-label">Status: </span>
+                  <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
+                  <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
+              </div>
 
-              <div class="queue-add" *ngIf="isAdmin">
-                  <select [(ngModel)]="selecaoFilaPorMaquina[maq.id]" name="fila{{ maq.id }}">
-                      <option value="">-- ADICIONAR / MOVER OF --</option>
-                      <option
-                        *ngFor="let item of itensFila"
-                        [value]="item.codigoEtapa"
-                        [disabled]="item.maquinaIdealId === maq.id">
-                          {{ item.codigoEtapa }} | {{ item.maquinaIdealNome || 'Sem máquina' }}
-                      </option>
-                  </select>
-                  <button class="btn btn-blue" (click)="adicionarNaFila(maq.id)" [disabled]="isCarregando">
-                      Adicionar
-                  </button>
+              <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)">
+                  <div>
+                      <span>OF em produção</span>
+                      <strong>{{ textoOFAtiva(maq) }}</strong>
+                  </div>
+                  <div>
+                      <span>Etapa</span>
+                      <strong>{{ textoEtapaAtiva(maq) }}</strong>
+                  </div>
+                  <div>
+                      <span>Operador</span>
+                      <strong>{{ textoOperadorAtivo(maq) }}</strong>
+                  </div>
+                  <div>
+                      <span>Quantidade</span>
+                      <strong>{{ textoQuantidadeAtiva(maq) }}</strong>
+                      <small>{{ textoRestanteAtivo(maq) }}</small>
+                  </div>
+              </div>
+
+              <button *ngIf="isAdmin" class="btn-toggle-status" (click)="alternarStatus(maq.id)">
+                  {{ maq.operacional ? 'Enviar para Manutenção' : 'Liberar Centro' }}
+              </button>
+
+              <div class="queue-section">
+                  <div class="queue-section-title">
+                      <h4>Fila de Produção</h4>
+                      <span>{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
+                  </div>
+
+                  <div class="queue-list" *ngIf="filaDaMaquina(maq.id).length > 0; else filaVazia">
+                      <div
+                        class="queue-item"
+                        *ngFor="let item of filaDaMaquina(maq.id); let i = index"
+                        [class.dragging]="itemArrastado?.codigoEtapa === item.codigoEtapa"
+                        [attr.draggable]="isAdmin"
+                        (dragstart)="iniciarArraste(item)"
+                        (dragover)="permitirSoltar($event)"
+                        (drop)="soltarNaFila(maq.id, item)"
+                        (dragend)="finalizarArraste()">
+                          <div>
+                              <strong>{{ i + 1 }}. {{ item.codigoEtapa }}</strong>
+                              <span>{{ textoEtapaItem(item) }} · {{ textoProdutoItem(item) }}</span>
+                              <small>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</small>
+                          </div>
+                          <button *ngIf="isAdmin" class="queue-remove-btn" title="Tirar da fila" (click)="removerDaFila(item.codigoEtapa)">×</button>
+                      </div>
+                  </div>
+
+                  <ng-template #filaVazia>
+                      <div class="queue-empty">Sem ordens na fila.</div>
+                  </ng-template>
+
+                  <div class="queue-add" *ngIf="isAdmin">
+                      <select [(ngModel)]="selecaoFilaPorMaquina[maq.id]" name="fila{{ maq.id }}">
+                          <option value="">-- ADICIONAR / MOVER ETAPA --</option>
+                          <option
+                            *ngFor="let item of itensDisponiveisParaMaquina(maq)"
+                            [value]="item.codigoEtapa">
+                              {{ item.codigoEtapa }} | {{ textoEtapaItem(item) }} | {{ item.maquinaIdealNome || 'Sem centro' }}
+                          </option>
+                      </select>
+                      <button class="btn btn-blue" (click)="adicionarNaFila(maq.id)" [disabled]="isCarregando">
+                          Adicionar
+                      </button>
+                  </div>
               </div>
           </div>
       </div>
-  </div>
+  </section>
 </div>

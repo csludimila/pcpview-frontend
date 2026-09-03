@@ -4,6 +4,15 @@ Este branch parte da versao final de usinagem salva em `baseline-usinagem-final`
 
 O objetivo visual continua sendo manter o padrao dark profissional e a fidelidade ao prototipo de alta fidelidade, mas ampliando a navegação para o processo completo da fabrica.
 
+## Implementado nesta branch
+
+- Planejamento cria OF com roteiro visual de Corte, Caldeiraria, Usinagem, Acabamento, Inspecao e Expedicao.
+- Cada etapa pode ser ativada/desativada e receber um centro ideal do mesmo setor.
+- Maquinas foi mantida como rota, mas os cards agora funcionam como centros de trabalho agrupados por setor.
+- Cada card continua com fila abaixo, suporte a mover/tirar etapa da fila e reordenacao por arrastar.
+- Operacao ganhou selecao de setor e centro, mostrando apenas etapas liberadas.
+- Acompanhamento ganhou pesquisa por OF, produto, etapa, setor e centro, alem de rota em miniatura por OF.
+
 ## Nova organizacao visual
 
 Menu sugerido:
@@ -102,7 +111,7 @@ Para nao explodir escopo, a primeira entrega deve suportar:
 
 1. setores fixos;
 2. centros de trabalho vinculados a setor;
-3. roteiro simples por produto;
+3. roteiro simples na criacao da OF;
 4. OF gerando etapas automaticamente;
 5. fila por centro;
 6. operacao por etapa;

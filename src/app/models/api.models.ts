@@ -36,11 +36,15 @@ export interface ResetPasswordRequestDTO {
 export interface MachineRequestDTO {
   id: string;
   nome: string;
+  setor?: string;
+  tipoCentro?: string;
 }
 
 export interface MachineResponseDTO {
   id?: string;
   nome?: string;
+  setor?: string;
+  tipoCentro?: string;
   operacional?: boolean;
   statusOperacional?: 'DISPONIVEL' | 'TRABALHANDO' | 'MANUTENCAO';
 }
@@ -76,19 +80,29 @@ export interface SubsetRequestDTO {
   quantidadeEtapas: number;
 }
 
+export interface ProcessStepRequestDTO {
+  nomeEtapa: string;
+  setor: string;
+  maquinaIdealId?: string | null;
+}
+
 export interface OrderRequestDTO {
   numeroOrdem: string;
   quantidadeTotal: number;
   produtoNome?: string;
   maquinaIdealId?: string | null;
   subconjuntos?: SubsetRequestDTO[];
+  roteiroEtapas?: ProcessStepRequestDTO[];
 }
 
 export interface SubOrderResponseDTO {
   codigoEtapa?: string;
   quantidadeTotal?: number;
   quantidadeProduzida?: number;
-  status?: 'AGUARDANDO' | 'EM_PROCESSAMENTO' | 'FINALIZADO' | 'CANCELADO';
+  status?: 'AGUARDANDO' | 'EM_PROCESSAMENTO' | 'BLOQUEADO' | 'FINALIZADO' | 'CANCELADO';
+  setor?: string;
+  nomeEtapa?: string;
+  ordemProcesso?: number;
   maquinaIdealId?: string | null;
   maquinaIdealNome?: string | null;
   posicaoFila?: number | null;
@@ -100,7 +114,7 @@ export interface OrderResponseDTO {
   produtoSku?: string;
   quantidadeTotal?: number;
   quantidadeProduzida?: number;
-  status?: 'AGUARDANDO' | 'EM_PROCESSAMENTO' | 'FINALIZADO' | 'CANCELADO';
+  status?: 'AGUARDANDO' | 'EM_PROCESSAMENTO' | 'BLOQUEADO' | 'FINALIZADO' | 'CANCELADO';
   subOrdens?: SubOrderResponseDTO[];
   dataInicio?: string;
   dataFim?: string;
@@ -130,6 +144,9 @@ export interface ExecutionResponseDTO {
   maquinaId?: string;
   maquinaNome?: string;
   subOrdemId?: string;
+  setor?: string;
+  nomeEtapa?: string;
+  ordemProcesso?: number;
   quantidadeTotal?: number;
   quantidadeProduzida?: number;
   quantidadeRestante?: number;

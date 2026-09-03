@@ -3,8 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MachineService, MachineDTO } from '../../services/machine.service';
 import { ExecutionOrderService } from '../../services/execution-order.service';
-import { OrderResponseDTO } from '../../models/api.models';
+import { OrderRequestDTO, OrderResponseDTO, ProcessStepRequestDTO } from '../../models/api.models';
 import { apiErrorMessage } from '../../shared/api-error';
+
+interface RoteiroEtapaUI extends ProcessStepRequestDTO {
+  ativa: boolean;
+  sigla: string;
+}
 
 @Component({
   selector: 'app-order-form',
@@ -19,14 +24,14 @@ export class OrderFormComponent implements OnInit {
 
   maquinasDisponiveis: MachineDTO[] = [];
   ordens: OrderResponseDTO[] = [];
-  
+
   novaOrdem = {
     numeroOrdem: '',
     quantidadeTotal: 1
   };
-  
+
   nomeProdutoRef = '';
-  maquinaSelecionada = '';
+  roteiroEtapas: RoteiroEtapaUI[] = this.criarRoteiroPadrao();
   ordemParaExcluir = '';
   ordemExclusaoPendente = '';
   isCarregando = false;
@@ -36,28 +41,48 @@ export class OrderFormComponent implements OnInit {
     return this.ordens.filter((ordem) => ordem.status === 'AGUARDANDO' || !ordem.status);
   }
 
-  get ordensSemMaquina(): OrderResponseDTO[] {
-    return this.ordensAguardando.filter((ordem) => !ordem.subOrdens?.[0]?.maquinaIdealId);
+  get quantidadeEtapasAtivas(): number {
+    return this.roteiroEtapas.filter((etapa) => etapa.ativa).length;
+  }
+
+  get etapasSemCentro(): number {
+    return this.ordensAguardando.flatMap((ordem) => ordem.subOrdens || [])
+      .filter((subOrdem) => (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0))
+      .filter((subOrdem) => subOrdem.status === 'AGUARDANDO' || !subOrdem.status)
+      .filter((subOrdem) => !subOrdem.maquinaIdealId)
+      .length;
   }
 
   quantidadeNaFilaDaMaquina(machineId: string): number {
-    return this.ordensAguardando.filter((ordem) => ordem.subOrdens?.[0]?.maquinaIdealId === machineId).length;
+    return this.ordensAguardando.flatMap((ordem) => ordem.subOrdens || [])
+      .filter((subOrdem) => (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0))
+      .filter((subOrdem) => subOrdem.status === 'AGUARDANDO' || !subOrdem.status)
+      .filter((subOrdem) => subOrdem.maquinaIdealId === machineId)
+      .length;
   }
 
-  textoResumoFila(): string {
-    if (!this.maquinaSelecionada) {
-      const total = this.ordensSemMaquina.length;
-      return total === 1
-        ? '1 OF aguardando definição de máquina.'
-        : `${total} OFs aguardando definição de máquina.`;
-    }
+  maquinasPorSetor(setor: string): MachineDTO[] {
+    return this.maquinasDisponiveis
+      .filter((maquina) => this.normalizarTextoMaiusculo(maquina.setor || 'USINAGEM') === setor)
+      .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+  }
 
-    const maquina = this.maquinasDisponiveis.find((item) => item.id === this.maquinaSelecionada);
-    const total = this.quantidadeNaFilaDaMaquina(this.maquinaSelecionada);
-    const nome = maquina?.nome || 'máquina selecionada';
+  textoResumoEtapa(etapa: RoteiroEtapaUI): string {
+    if (!etapa.ativa) return 'Etapa fora do roteiro desta OF.';
+    if (!etapa.maquinaIdealId) return 'Sem centro definido. A etapa entrará para alocação manual.';
+
+    const maquina = this.maquinasDisponiveis.find((item) => item.id === etapa.maquinaIdealId);
+    const total = this.quantidadeNaFilaDaMaquina(etapa.maquinaIdealId);
+    const nome = maquina?.nome || 'centro selecionado';
     return total === 1
-      ? `1 OF já está na fila de ${nome}.`
-      : `${total} OFs já estão na fila de ${nome}.`;
+      ? `1 etapa já está na fila de ${nome}.`
+      : `${total} etapas já estão na fila de ${nome}.`;
+  }
+
+  get textoResumoRoteiro(): string {
+    if (this.quantidadeEtapasAtivas === 0) return 'Selecione pelo menos uma etapa do processo.';
+    const primeira = this.roteiroEtapas.find((etapa) => etapa.ativa);
+    return `${this.quantidadeEtapasAtivas} etapas no roteiro. Primeira liberação: ${primeira?.nomeEtapa || '-'}.`;
   }
 
   get codigoOrdemNormalizado(): string {
@@ -78,6 +103,7 @@ export class OrderFormComponent implements OnInit {
     return !!this.codigoOrdemNormalizado &&
       Number.isInteger(quantidadeTotal) &&
       quantidadeTotal > 0 &&
+      this.quantidadeEtapasAtivas > 0 &&
       !this.ordemJaExiste &&
       !this.isCarregando;
   }
@@ -93,7 +119,7 @@ export class OrderFormComponent implements OnInit {
         this.maquinasDisponiveis = maquinas.filter(m => m.operacional);
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar máquinas disponíveis.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar centros disponíveis.');
       }
     });
   }
@@ -132,9 +158,15 @@ export class OrderFormComponent implements OnInit {
     const numeroOrdem = this.codigoOrdemNormalizado;
     const produtoNome = this.nomeProdutoNormalizado;
     const quantidadeTotal = Number(this.novaOrdem.quantidadeTotal);
+    const roteiroEtapas = this.montarRoteiroPayload();
 
     if (!numeroOrdem || !Number.isInteger(quantidadeTotal) || quantidadeTotal <= 0) {
       this.mensagemFeedback = 'Preencha o SKU do Produto e a Quantidade Solicitada.';
+      return;
+    }
+
+    if (roteiroEtapas.length === 0) {
+      this.mensagemFeedback = 'Selecione pelo menos uma etapa do roteiro.';
       return;
     }
 
@@ -146,23 +178,19 @@ export class OrderFormComponent implements OnInit {
     this.isCarregando = true;
     this.mensagemFeedback = '';
 
-    const payload = {
+    const payload: OrderRequestDTO = {
       numeroOrdem,
       quantidadeTotal,
       produtoNome: produtoNome || undefined,
-      maquinaIdealId: this.maquinaSelecionada ? this.maquinaSelecionada : null,
-      subconjuntos: [{ letra: "A", quantidadeEtapas: 1 }]
+      roteiroEtapas
     };
 
     this.orderService.criarOrdemComEtapas(payload).subscribe({
       next: () => {
-        const destino = this.maquinaSelecionada
-          ? ' A OF entrou na fila da máquina ideal selecionada.'
-          : ' A OF ficou sem máquina definida e poderá ser alocada em Máquinas.';
-        this.mensagemFeedback = `Ordem de Serviço gerada com sucesso.${destino}`;
+        this.mensagemFeedback = `Ordem de Serviço gerada com sucesso. ${this.textoResumoRoteiro}`;
         this.novaOrdem = { numeroOrdem: '', quantidadeTotal: 1 };
         this.nomeProdutoRef = '';
-        this.maquinaSelecionada = '';
+        this.roteiroEtapas = this.criarRoteiroPadrao();
         this.carregarOrdens();
         this.isCarregando = false;
       },
@@ -171,6 +199,31 @@ export class OrderFormComponent implements OnInit {
         this.isCarregando = false;
       }
     });
+  }
+
+  trackEtapa(_: number, etapa: RoteiroEtapaUI): string {
+    return etapa.setor;
+  }
+
+  private montarRoteiroPayload(): ProcessStepRequestDTO[] {
+    return this.roteiroEtapas
+      .filter((etapa) => etapa.ativa)
+      .map((etapa) => ({
+        nomeEtapa: etapa.nomeEtapa,
+        setor: etapa.setor,
+        maquinaIdealId: etapa.maquinaIdealId || null
+      }));
+  }
+
+  private criarRoteiroPadrao(): RoteiroEtapaUI[] {
+    return [
+      { sigla: 'CT', nomeEtapa: 'CORTE', setor: 'CORTE', maquinaIdealId: null, ativa: true },
+      { sigla: 'CL', nomeEtapa: 'CALDEIRARIA', setor: 'CALDEIRARIA', maquinaIdealId: null, ativa: true },
+      { sigla: 'US', nomeEtapa: 'USINAGEM', setor: 'USINAGEM', maquinaIdealId: null, ativa: true },
+      { sigla: 'AC', nomeEtapa: 'ACABAMENTO', setor: 'ACABAMENTO', maquinaIdealId: null, ativa: true },
+      { sigla: 'IN', nomeEtapa: 'INSPECAO', setor: 'INSPECAO', maquinaIdealId: null, ativa: true },
+      { sigla: 'EX', nomeEtapa: 'EXPEDICAO', setor: 'EXPEDICAO', maquinaIdealId: null, ativa: true }
+    ];
   }
 
   private normalizarTextoMaiusculo(valor: string): string {

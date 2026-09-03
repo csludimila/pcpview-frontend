@@ -1,30 +1,37 @@
 <div class="container-escritorio planning-page">
   <div class="planning-shell">
-      
+
       <div class="panel planning-panel">
-          
+
           <div class="panel-header planning-header">
               <span class="planning-icon">PL</span>
               <span>Planejamento (Nova OF)</span>
           </div>
 
           <form (ngSubmit)="gerarOrdem()">
-              
-              <div class="form-group">
-                  <label>SKU DO PRODUTO (Base)</label>
-                  <input
-                    type="text"
-                    [ngModel]="novaOrdem.numeroOrdem"
-                    (ngModelChange)="atualizarNumeroOrdemDigitado($event)"
-                    (blur)="normalizarNumeroOrdemCampo()"
-                    name="sku"
-                    placeholder="Ex: PV-0011003"
-                    required>
-                  <div *ngIf="ordemJaExiste" class="field-warning">
-                      Código de OF já cadastrado.
+
+              <div class="form-grid">
+                  <div class="form-group">
+                      <label>SKU DO PRODUTO (Base)</label>
+                      <input
+                        type="text"
+                        [ngModel]="novaOrdem.numeroOrdem"
+                        (ngModelChange)="atualizarNumeroOrdemDigitado($event)"
+                        (blur)="normalizarNumeroOrdemCampo()"
+                        name="sku"
+                        placeholder="Ex: PV-0011003"
+                        required>
+                      <div *ngIf="ordemJaExiste" class="field-warning">
+                          Código de OF já cadastrado.
+                      </div>
+                  </div>
+
+                  <div class="form-group">
+                      <label>QTD. SOLICITADA</label>
+                      <input type="number" [(ngModel)]="novaOrdem.quantidadeTotal" name="qtd" placeholder="Ex: 10" min="1" required>
                   </div>
               </div>
-              
+
               <div class="form-group">
                   <label>NOME DO PRODUTO</label>
                   <input
@@ -35,23 +42,33 @@
                     name="nome"
                     placeholder="Ex: EIXO PRINCIPAL">
               </div>
-              
-              <div class="form-group">
-                  <label>QTD. SOLICITADA</label>
-                  <input type="number" [(ngModel)]="novaOrdem.quantidadeTotal" name="qtd" placeholder="Ex: 10" min="1" required>
+
+              <div class="route-header">
+                  <div>
+                      <label>ROTEIRO DO PROCESSO</label>
+                      <span>{{ textoResumoRoteiro }}</span>
+                  </div>
+                  <strong>{{ etapasSemCentro }} sem centro</strong>
               </div>
-              
-              <div class="form-group">
-                  <label>MÁQUINA IDEAL (OPCIONAL)</label>
-                  <select [(ngModel)]="maquinaSelecionada" name="maquina">
-                      <option value="">-- SEM MÁQUINA DEFINIDA --</option>
-                      <option *ngFor="let maq of maquinasDisponiveis" [value]="maq.id">{{ maq.nome }}</option>
-                  </select>
-                  <div class="queue-hint">
-                      {{ textoResumoFila() }}
+
+              <div class="process-route">
+                  <div class="route-step" *ngFor="let etapa of roteiroEtapas; trackBy: trackEtapa" [class.disabled]="!etapa.ativa">
+                      <label class="route-toggle">
+                          <input type="checkbox" [(ngModel)]="etapa.ativa" name="ativa{{ etapa.setor }}">
+                          <span>{{ etapa.sigla }}</span>
+                      </label>
+
+                      <div class="route-step-body">
+                          <strong>{{ etapa.nomeEtapa }}</strong>
+                          <select [(ngModel)]="etapa.maquinaIdealId" name="maquina{{ etapa.setor }}" [disabled]="!etapa.ativa">
+                              <option [ngValue]="null">-- SEM CENTRO DEFINIDO --</option>
+                              <option *ngFor="let maq of maquinasPorSetor(etapa.setor)" [ngValue]="maq.id">{{ maq.nome }}</option>
+                          </select>
+                          <small>{{ textoResumoEtapa(etapa) }}</small>
+                      </div>
                   </div>
               </div>
-              
+
               <button type="submit" class="btn btn-orange btn-full mt-4" [disabled]="!podeGerarOrdem">
                   {{ isCarregando ? 'A gerar ordem...' : 'Gerar Ordem de Serviço' }}
               </button>
@@ -60,9 +77,9 @@
           <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-top: 15px;">
               {{ mensagemFeedback }}
           </div>
-          
+
           <hr class="panel-divider">
-          
+
           <div class="form-group">
               <label>EXCLUIR ORDEM DE SERVIÇO</label>
               <div class="delete-row">
