@@ -3,46 +3,51 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { apiErrorMessage } from '../../../shared/api-error';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login.html',
-  styleUrl: './login.css'
+  styleUrls: ['./login.css']
 })
 export class LoginComponent {
+  email = '';
+  password = '';
+  errorMessage = '';
+  isLoading = false;
 
-  credenciais = {
-    email: '',
-    password: ''
-  };
-
-  // CONSTRUTOR CORRIGIDO: Apenas com as injeções necessárias, sem variáveis perdidas
   constructor(
-    private authService: AuthService, 
+    private authService: AuthService,
     private router: Router
   ) {}
 
-  onLogin(): void {
-    if (this.credenciais.email && this.credenciais.password) {
-      
-      this.authService.login(this.credenciais).subscribe({
-        next: (res: any) => {
-          this.authService.setToken(res.token);
-          console.log('Token recebido:', res.token);
-          
-          alert('Login efetuado com sucesso!');
-          this.router.navigate(['/escritorio']);
-        },
-        error: (err: any) => {
-          console.error('Erro no login:', err);
-          alert('Falha na autenticação. Verifique e-mail e senha.');
-        }
-      });
-
-    } else {
-      alert('Por favor, preencha todos os campos.');
+  onSubmit(): void {
+    if (!this.email || !this.password) {
+      this.errorMessage = 'Por favor, preencha todos os campos.';
+      return;
     }
+
+    this.errorMessage = '';
+    this.isLoading = true;
+
+    this.authService.login({ email: this.email, password: this.password }).subscribe({
+      next: (res: any) => {
+        this.isLoading = false;
+        this.authService.setToken(res.token);
+        this.router.navigate(['/escritorio']);
+      },
+      error: (err: any) => {
+        this.isLoading = false;
+        this.errorMessage = apiErrorMessage(err, 'Falha na autenticação. Verifique e-mail e senha.');
+        console.error('Erro no login:', err);
+      }
+    });
+  }
+
+  // Mantido por compatibilidade caso outro local use onLogin
+  onLogin(): void {
+    this.onSubmit();
   }
 }

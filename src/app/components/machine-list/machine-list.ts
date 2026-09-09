@@ -1,210 +1,245 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MachineService } from '../../services/machine';
-import { ProductionService } from '../../services/production';
-import { MachineModel, MachineStatus } from '../../models/machine.model';
-import { ProductOrderModel, OrderStatus } from '../../models/ordem-producao';
+import { interval } from 'rxjs';
+import { MachineService, MachineDTO } from '../../services/machine.service';
+import { ExecutionOrderService } from '../../services/execution-order.service';
+import { ExecutionResponseDTO } from '../../models/api.models';
+import { apiErrorMessage } from '../../shared/api-error';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-machine-list',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './machine-list.html',
-  styleUrl: './machine-list.css'
+  styleUrls: ['./machine-list.css']
 })
 export class MachineListComponent implements OnInit {
-  machines: MachineModel[] = [];
-  orders: ProductOrderModel[] = [];
-  novaMaquinaNome: string = ''; 
-  maquinaParaIniciar?: MachineModel;
+  private machineService = inject(MachineService);
+  private executionOrderService = inject(ExecutionOrderService);
+  private authService = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
 
-  // CONSTRUTOR CORRIGIDO: Injeções limpas e prontas para o ambiente local
-  constructor(
-    private machineService: MachineService,
-    private productionService: ProductionService
-  ) { }
+  maquinas: MachineDTO[] = [];
+  execucoesAbertas: ExecutionResponseDTO[] = [];
+  isCarregando = false;
+  mensagemFeedback = '';
 
-  ngOnInit(): void {
+  novaMaquinaId = '';
+  novaMaquinaNome = '';
+  buscaMaquinaId = '';
+  maquinaEncontrada?: MachineDTO;
+  maquinaExclusaoPendente = '';
+  maquinaEdicaoId = '';
+  nomeMaquinaEditado = '';
+
+  ngOnInit() {
     this.carregarMaquinas();
-    this.carregarOrdens();
-
-    // Atualização automática a cada 30 segundos do banco H2 local
-    setInterval(() => {
-      this.carregarOrdens();
-    }, 30000);
+    this.carregarExecucoes();
+    interval(8000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.sincronizarPainel());
   }
 
-  // --- GERENCIAMENTO DE MÁQUINAS (API LOCAL) ---
-
-  carregarMaquinas() {
-    this.machineService.listAll().subscribe(dados => {
-      this.machines = dados;
-    });
+  sincronizarPainel() {
+    this.carregarMaquinas(true);
+    this.carregarExecucoes();
   }
 
-  registrarMaquina(nome: string) {
-    if (!nome || nome.trim() === '') {
-      alert('Por favor, digite um nome para a máquina.');
-      return;
+  carregarMaquinas(silencioso = false) {
+    if (!silencioso) {
+      this.isCarregando = true;
     }
 
-    this.machineService.save(nome).subscribe({
-      next: () => {
-        this.novaMaquinaNome = ''; 
-        this.carregarMaquinas();    
-        alert('Máquina cadastrada com sucesso!');
-      },
-      error: (err: any) => {
-        console.error('Erro ao registrar', err);
-        alert('Erro ao cadastrar. Verifique se o Backend está rodando localmente.');
-      }
-    });
-  }
-
-  deletar(id: string | undefined) {
-    if (id && confirm("Deseja realmente excluir esta máquina?")) {
-      this.machineService.delete(id).subscribe({
-        next: () => {
-          this.machines = this.machines.filter(m => m.id !== id);
-          alert("Máquina deletada!");
-        },
-        error: (err) => alert("Erro ao tentar deletar.")
-      });
-    }
-  }
-
-  // --- LÓGICA DE STATUS E OPERAÇÃO ---
-
-  pausar(maquina: MachineModel) {
-    maquina.status = 'PAUSADO';
-  }
-
-  manutencao(maquina: MachineModel) {
-    if (maquina.id && confirm(`Colocar a ${maquina.nome} em MANUTENÇÃO?`)) {
-      this.machineService.toggleStatus(maquina.id).subscribe(() => {
-        this.carregarMaquinas();
-      });
-    }
-  }
-
-  alterarStatusManual(maquina: MachineModel, novoStatus: MachineStatus) {
-    maquina.status = novoStatus;
-  }
-
-  // --- LÓGICA DE PRODUÇÃO (ORDENS LOCAL) ---
-
-  carregarOrdens() {
-    this.productionService.listarTodas().subscribe({
+    this.machineService.buscarTodasMaquinas().subscribe({
       next: (dados) => {
-        this.orders = dados;
-        console.log('Ordens carregadas com sucesso no frontend:', dados);
-      },
-      error: (err) => { console.error('Erro ao carregar ordens do H2', err); }
-    });
-  }
-
-  abrirSelecaoOF(maquina: MachineModel) {
-    this.maquinaParaIniciar = maquina;
-  }
-
-  vincularOrdem(numeroOrdem: string) {
-    if (!this.maquinaParaIniciar) {
-      alert('Por favor, selecione uma máquina no painel primeiro!');
-      return;
-    }
-
-    if (!numeroOrdem || numeroOrdem.trim() === '') {
-      alert('Por favor, selecione um Lote válido!');
-      return;
-    }
-
-    const ordemCompleta = this.orders.find(o => o.numeroOrdem === numeroOrdem);
-
-    if (ordemCompleta && this.maquinaParaIniciar.id) {
-      this.maquinaParaIniciar.status = 'TRABALHANDO';
-      this.maquinaParaIniciar.ofAtiva = ordemCompleta.numeroOrdem;
-
-      ordemCompleta.status = OrderStatus.FABRICANDO;
-
-      // Sincroniza passando o payload de texto para { nome: novoNome } no H2 Local
-      this.productionService.atualizarNome(ordemCompleta.numeroOrdem, 'FABRICANDO').subscribe({
-        next: () => {
-          console.log(`Ordem ${ordemCompleta.numeroOrdem} atualizada para FABRICANDO no banco.`);
-        },
-        error: (err) => {
-          console.error('Erro ao sincronizar status da ordem com o backend:', err);
+        this.maquinas = dados.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+        if (this.maquinaExclusaoPendente && !dados.some((maquina) => maquina.id === this.maquinaExclusaoPendente)) {
+          this.maquinaExclusaoPendente = '';
         }
-      });
-
-      alert(`Sucesso! A máquina ${this.maquinaParaIniciar.nome} iniciou a OP ${ordemCompleta.numeroOrdem}`);
-    } else {
-      alert('Ordem de serviço não encontrada ou inválida no sistema.');
-    }
-  }
-
-  abrirApontamento(maquina: MachineModel) {
-    const qtdProd = prompt(`Quantas peças foram produzidas na ${maquina.nome}?`);
-
-    if (qtdProd && !isNaN(Number(qtdProd))) {
-      const ordem = this.orders.find(o => o.numeroOrdem === maquina.ofAtiva);
-
-      if (ordem) {
-        ordem.quantidadeProduzida = Number(qtdProd);
-        ordem.status = OrderStatus.FINALIZADA;
-
-        // Envia o encerramento em modo local perfeitamente
-        this.productionService.atualizarNome(ordem.numeroOrdem, 'FINALIZADA').subscribe({
-          next: () => {
-            console.log(`Ordem ${ordem.numeroOrdem} encerrada com sucesso no banco.`);
-            alert(`Produção apontada com sucesso! ${qtdProd} peças usinadas.`);
-            this.carregarOrdens(); 
-          },
-          error: (err) => {
-            console.error('Erro ao salvar o apontamento no backend:', err);
-            alert('Erro ao salvar o apontamento no banco de dados.');
-          }
-        });
-      }
-
-      maquina.status = 'DISPONIVEL';
-      maquina.ofAtiva = '';
-    } else if (qtdProd !== null) {
-      alert('Por favor, insira um valor numérico válido para a quantidade.');
-    }
-  }
-
-  // --- UTILITÁRIOS ---
-
-  alterarStatus(id: string) {
-    this.machineService.toggleStatus(id).subscribe({
-      next: (maquinaAtualizada) => {
-        this.atualizarMaquinaNaLista(maquinaAtualizada);
+        if (this.maquinaEdicaoId && !dados.some((maquina) => maquina.id === this.maquinaEdicaoId)) {
+          this.cancelarEdicaoMaquina();
+        }
+        if (!silencioso) {
+          this.isCarregando = false;
+        }
       },
-      error: (err) => alert("Erro ao alterar status.")
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar máquinas.');
+        if (!silencioso) {
+          this.isCarregando = false;
+        }
+      }
     });
   }
 
-  alterarNome(maquina: MachineModel) {
-    const novoNome = prompt(`Digite o novo nome para a máquina ${maquina.nome}:`);
-    if (maquina.id && novoNome && novoNome.trim() !== '') {
-      this.machineService.updateName(maquina.id, novoNome).subscribe({
-        next: (maquinaAtualizada) => {
-          this.atualizarMaquinaNaLista(maquinaAtualizada);
-          alert("Nome updated!");
-        },
-        error: (err) => alert("Erro ao atualizar nome.")
-      });
-    }
+  carregarExecucoes() {
+    this.executionOrderService.listarTodas({ status: 'RODANDO' }).subscribe({
+      next: (execucoes) => {
+        this.execucoesAbertas = execucoes.filter((execucao) => execucao.status === 'RODANDO');
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar execuções em andamento.');
+      }
+    });
   }
 
-  atualizarMaquinaNaLista(maquinaAtualizada: MachineModel) {
-    const index = this.machines.findIndex(m => m.id === maquinaAtualizada.id);
-    if (index !== -1) {
-      this.machines[index] = {
-        ...maquinaAtualizada,
-        operacional: maquinaAtualizada.operacional
-      };
+  buscarMaquinaPorId() {
+    const id = this.normalizarTextoMaiusculo(this.buscaMaquinaId);
+    if (!id) {
+      this.maquinaEncontrada = undefined;
+      this.mensagemFeedback = 'Informe o ID da máquina para buscar.';
+      return;
     }
+
+    this.isCarregando = true;
+    this.machineService.buscarMaquinaPorId(id).subscribe({
+      next: (maquina) => {
+        this.maquinaEncontrada = maquina;
+        this.mensagemFeedback = 'Máquina encontrada.';
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.maquinaEncontrada = undefined;
+        this.mensagemFeedback = apiErrorMessage(err, 'Máquina não encontrada.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  adicionarMaquina() {
+    const id = this.normalizarTextoMaiusculo(this.novaMaquinaId);
+    const nome = this.normalizarTextoMaiusculo(this.novaMaquinaNome);
+    if (!id || !nome) {
+      this.mensagemFeedback = 'Informe ID e nome para cadastrar a máquina.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.machineService.registrarMaquina({ id, nome }).subscribe({
+      next: () => {
+        this.novaMaquinaId = '';
+        this.novaMaquinaNome = '';
+        this.mensagemFeedback = 'Máquina cadastrada com sucesso.';
+        this.carregarMaquinas();
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao cadastrar máquina.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  excluirMaquina(id: string) {
+    if (this.maquinaExclusaoPendente !== id) {
+      this.maquinaExclusaoPendente = id;
+      this.cancelarEdicaoMaquina();
+      this.mensagemFeedback = 'Clique novamente em excluir para confirmar a remoção da máquina.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.mensagemFeedback = '';
+    this.machineService.deletarMaquina(id).subscribe({
+      next: () => {
+        this.maquinaExclusaoPendente = '';
+        this.mensagemFeedback = 'Máquina excluída com sucesso.';
+        this.carregarMaquinas();
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir máquina.');
+        this.maquinaExclusaoPendente = '';
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  alternarStatus(id: string) {
+    this.isCarregando = true;
+    this.machineService.alternarStatusOperacional(id).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Status operacional atualizado.';
+        this.carregarMaquinas();
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao alternar status da máquina.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  iniciarEdicaoMaquina(maquina: MachineDTO) {
+    if (!maquina.id) return;
+
+    this.maquinaEdicaoId = maquina.id;
+    this.nomeMaquinaEditado = maquina.nome || '';
+    this.maquinaExclusaoPendente = '';
+    this.mensagemFeedback = '';
+  }
+
+  cancelarEdicaoMaquina() {
+    this.maquinaEdicaoId = '';
+    this.nomeMaquinaEditado = '';
+  }
+
+  salvarNomeMaquina(maquina: MachineDTO) {
+    const id = maquina.id;
+    const nome = this.normalizarTextoMaiusculo(this.nomeMaquinaEditado);
+
+    if (!id || !nome) {
+      this.mensagemFeedback = 'Informe um nome válido para a máquina.';
+      return;
+    }
+
+    if (nome === this.normalizarTextoMaiusculo(maquina.nome || '')) {
+      this.cancelarEdicaoMaquina();
+      return;
+    }
+
+    this.isCarregando = true;
+    this.machineService.alterarNome(id, { nome }).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Nome da máquina atualizado com sucesso.';
+        this.cancelarEdicaoMaquina();
+        this.carregarMaquinas();
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar nome da máquina.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  textoQuantidade(total: number): string {
+    return total === 1 ? '1 máquina' : `${total} máquinas`;
+  }
+
+  textoStatusMaquina(maq: MachineDTO): string {
+    return maq.operacional === false ? 'INDISPONÍVEL' : 'OPERACIONAL';
+  }
+
+  classeStatusMaquina(maq: MachineDTO): string {
+    return maq.operacional === false ? 'dot-red' : 'dot-green';
+  }
+
+  execucaoAtivaDaMaquina(maq: MachineDTO): ExecutionResponseDTO | undefined {
+    return this.execucoesAbertas.find((execucao) =>
+      execucao.maquinaId === maq.id ||
+      this.normalizarTextoMaiusculo(execucao.maquinaNome || '') === this.normalizarTextoMaiusculo(maq.nome || '')
+    );
+  }
+
+  trackMaquina(_: number, maquina: MachineDTO): string {
+    return maquina.id;
+  }
+
+  private normalizarTextoMaiusculo(valor: string): string {
+    return (valor || '').trim().toUpperCase();
   }
 }

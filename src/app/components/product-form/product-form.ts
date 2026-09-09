@@ -1,54 +1,140 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-
-import { ProductService, ProductModel } from '../../services/product';
+import { FormsModule } from '@angular/forms';
+import { ProductService } from '../../services/product.service';
+import { ProductRequestDTO, ProductResponseDTO } from '../../models/api.models';
+import { apiErrorMessage } from '../../shared/api-error';
 
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule], 
   templateUrl: './product-form.html'
 })
 export class ProductFormComponent implements OnInit {
-  
-  listaDeProdutos: ProductModel[] = [];
-  
-  produtoForm = new FormGroup({
-    id: new FormControl('', Validators.required),
-    sku: new FormControl('', Validators.required),
-    nome: new FormControl('', Validators.required)
-  });
+  private productService = inject(ProductService);
 
-  constructor(private productService: ProductService) {}
+  // Variáveis exigidas pelo HTML
+  produtos: ProductResponseDTO[] = [];
+  isCarregando = false;
+  mensagemFeedback = '';
+  termoBusca = '';
+  produtoEmEdicaoId = '';
+  produtoExclusaoPendenteId = '';
+  nomeEditado = '';
+  
+  novoProduto: ProductRequestDTO = {
+    id: '',
+    sku: '',
+    nome: ''
+  };
 
   ngOnInit() {
     this.carregarProdutos();
   }
 
   carregarProdutos() {
-    this.productService.listarTodos().subscribe({
-      // 2. CORREÇÃO: Adicionado tipo 'any[]' para o parâmetro não dar erro de 'any' implícito
-      next: (dados: any[]) => {
-        this.listaDeProdutos = dados;
+    this.isCarregando = true;
+    this.productService.buscarTodosProdutos().subscribe({
+      next: (dados: ProductResponseDTO[]) => {
+        this.produtos = dados;
+        if (this.produtoExclusaoPendenteId && !dados.some((produto) => produto.id === this.produtoExclusaoPendenteId)) {
+          this.produtoExclusaoPendenteId = '';
+        }
+        this.isCarregando = false;
       },
-      // 3. CORREÇÃO: Adicionado tipo 'any' para o erro
-      error: (err: any) => console.error('Erro ao listar produtos:', err)
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar produtos do servidor.');
+        this.isCarregando = false;
+      }
     });
   }
 
-  onSalvar() {
-    if (this.produtoForm.valid) {
-      const novoProduto = this.produtoForm.value as ProductModel;
-      this.productService.cadastrar(novoProduto).subscribe({
-        next: () => {
-          alert('Produto cadastrado com sucesso no banco H2!');
-          this.produtoForm.reset();
-          this.carregarProdutos();
-        },
-        // 4. CORREÇÃO: Adicionado tipo 'any' para o erro
-        error: (err: any) => alert('Erro ao salvar produto.')
-      });
+  get produtosFiltrados(): ProductResponseDTO[] {
+    const termo = this.termoBusca.trim().toLowerCase();
+    if (!termo) return this.produtos;
+
+    return this.produtos.filter((produto) =>
+      produto.id?.toLowerCase().includes(termo) ||
+      produto.sku?.toLowerCase().includes(termo) ||
+      produto.nome?.toLowerCase().includes(termo)
+    );
+  }
+
+  adicionarProduto() {
+    if (!this.novoProduto.id || !this.novoProduto.sku || !this.novoProduto.nome) {
+      this.mensagemFeedback = 'Preencha todos os campos do produto.';
+      return;
     }
+
+    this.isCarregando = true;
+    this.productService.registrarProduto(this.novoProduto).subscribe({
+      next: () => {
+        this.novoProduto = { id: '', sku: '', nome: '' };
+        this.mensagemFeedback = 'Produto cadastrado com sucesso.';
+        this.carregarProdutos();
+      },
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao cadastrar produto.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  iniciarEdicao(produto: ProductResponseDTO) {
+    this.produtoEmEdicaoId = produto.id || '';
+    this.produtoExclusaoPendenteId = '';
+    this.nomeEditado = produto.nome || '';
+    this.mensagemFeedback = '';
+  }
+
+  cancelarEdicao() {
+    this.produtoEmEdicaoId = '';
+    this.nomeEditado = '';
+  }
+
+  salvarEdicao(produto: ProductResponseDTO) {
+    if (!produto.id || !this.nomeEditado.trim()) {
+      this.mensagemFeedback = 'Informe um nome válido para atualizar o produto.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.productService.atualizarNomeProduto(produto.id, { nome: this.nomeEditado.trim() }).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Produto atualizado com sucesso.';
+        this.cancelarEdicao();
+        this.carregarProdutos();
+      },
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar produto.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  excluirProduto(id: string | undefined) {
+    if (!id) return;
+
+    if (this.produtoExclusaoPendenteId !== id) {
+      this.produtoExclusaoPendenteId = id;
+      this.mensagemFeedback = 'Clique novamente em excluir para confirmar a remoção do produto.';
+      return;
+    }
+    
+    this.isCarregando = true;
+    this.mensagemFeedback = '';
+    this.productService.deletarProduto(id).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Produto excluído com sucesso.';
+        this.produtoExclusaoPendenteId = '';
+        this.carregarProdutos();
+      },
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir produto.');
+        this.produtoExclusaoPendenteId = '';
+        this.isCarregando = false;
+      }
+    });
   }
 }

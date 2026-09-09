@@ -1,118 +1,326 @@
-.container-fluid {
-  background-color: #1a1d21;
-  /* Fundo idêntico ao da Fábrica */
-  min-height: 100vh;
-  padding: 40px;
-  color: #fff;
+.planning-page {
+    width: min(1180px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0 42px;
 }
 
-/* Card do Formulário */
-.card-neumorphic {
-  background: #1a1d21 !important;
-  border: none !important;
-  border-radius: 30px !important;
-  box-shadow: 10px 10px 20px #121417,
-    -10px -10px 20px #22262b;
-  padding: 30px;
+.planning-shell {
+    max-width: 820px;
+    margin: 24px auto 0;
 }
 
+.planning-panel {
+    border-radius: 16px;
+}
 
-.card-neumorphic {
+.planning-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.2em;
+}
+
+.planning-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    box-shadow: inset 3px 3px 7px var(--shadow-dark), inset -3px -3px 7px var(--shadow-light);
+    color: var(--accent);
+    font-size: 0.75em;
+    font-weight: 900;
+}
+
+.queue-hint {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 0.82em;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(160px, 0.6fr);
+    gap: 14px;
+}
+
+.route-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 18px 0 12px;
+}
+
+.route-header label {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.route-header span,
+.route-header strong,
+.route-step small {
+    color: var(--text-muted);
+    font-size: 0.82em;
+}
+
+.route-header strong {
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.process-route {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.route-step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    background: var(--bg-dark);
+    box-shadow: inset 4px 4px 9px var(--shadow-dark), inset -4px -4px 9px rgba(39, 44, 50, 0.5);
+}
+
+.route-step.disabled {
+    opacity: 0.55;
+}
+
+.route-toggle {
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Cria o espaçamento entre os campos do print */
-    max-width: 550px; /* Largura aproximada do seu modelo */
-    margin: 0 auto; /* Centraliza o card na tela */
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--accent);
+    font-size: 0.72em;
+    font-weight: 900;
 }
 
-/* Garante que cada bloco (Label + Input) ocupe a largura total */
-.card-neumorphic div.mb-3, 
-.card-neumorphic div.mb-4 {
+.route-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
+.route-toggle span {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    background: var(--accent-soft);
+}
+
+.route-step-body {
+    min-width: 0;
+}
+
+.route-step-body strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-light);
+}
+
+.route-step-body select {
+    min-height: 40px;
+}
+
+.route-step small {
+    display: block;
+    margin-top: 8px;
+    line-height: 1.35;
+}
+
+.field-warning {
+    margin-top: 8px;
+    color: var(--status-pause);
+    font-size: 0.82em;
+    font-weight: 800;
+}
+
+.panel-divider {
+    border: 0;
+    border-top: 1px solid var(--panel-border);
+    margin: 25px 0;
+}
+
+.delete-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+}
+
+.btn-compact {
+    min-height: 36px;
+    padding: 8px 12px;
+}
+
+.btn-link-danger {
+    border: 0;
+    background: transparent;
+    color: var(--status-maintenance);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82em;
+    font-weight: 800;
+    margin-top: 10px;
+    padding: 0;
+}
+
+.subset-grid {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.subset-grid label {
+    color: var(--text-muted);
+    display: block;
+    font-size: 0.72em;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.orders-management {
+    display: grid;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.order-card {
+    border-radius: 16px;
+}
+
+.order-card-header {
+    align-items: start;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
+    gap: 16px;
+    justify-content: space-between;
+    margin-bottom: 16px;
 }
 
-/* Ajuste nos inputs para preencherem o card horizontalmente */
-.form-control-neumorphic {
-    width: 100% !important;
+.order-card-header h3 {
+    color: var(--text-light);
+    margin: 0 0 4px;
 }
 
-
-/* Estilização dos Inputs (Efeito Afundado) */
-.form-control-neumorphic {
-  background: #1a1d21 !important;
-  border: none !important;
-  border-radius: 15px !important;
-  color: #00d4ff !important;
-  /* Texto em azul neon para contraste */
-  padding: 15px !important;
-  /* Sombra interna para o efeito côncavo */
-  box-shadow: inset 6px 6px 12px #121417,
-    inset -6px -6px 12px #22262b !important;
-  transition: all 0.3s ease;
+.order-card-header span,
+.order-stats span,
+.suborder-row span {
+    color: var(--text-muted);
+    font-size: 0.84em;
 }
 
-.form-control-neumorphic:focus {
-  outline: none;
-  box-shadow: inset 2px 2px 5px #121417,
-    inset -2px -2px 5px #22262b,
-    0 0 8px rgba(0, 212, 255, 0.2) !important;
+.order-card-header > strong {
+    color: var(--accent);
+    font-size: 1.1em;
 }
 
-/* Labels */
-.form-label {
-  color: #adb5bd;
-  font-size: 0.85rem;
-  margin-left: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.order-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
 }
 
-/* Botão Laranja */
-.btn-orange {
-  background-color: #f36c21;
-  /* Cor extraída do print */
-  color: white;
-  border: none;
-  border-radius: 8px;
-  transition: all 0.2s;
+.order-stats div {
+    background: var(--bg-dark);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px;
 }
 
-.btn-orange:hover {
-  background-color: #d95a1a;
-  transform: translateY(-1px);
+.order-stats strong {
+    color: var(--text-light);
+    display: block;
+    font-size: 1.05em;
+    margin-top: 4px;
 }
 
-/* Estilo do Dropdown (Select) */
-select.form-control-neumorphic {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+.order-actions-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* Botão de Enviar (Igual ao da Fábrica) */
-.btn-neumorphic {
-  background: #1a1d21;
-  border: none;
-  border-radius: 15px;
-  color: #00d4ff;
-  font-weight: bold;
-  padding: 15px 30px;
-  box-shadow: 6px 6px 12px #121417,
-    -6px -6px 12px #22262b;
-  transition: all 0.2s ease;
+.inline-action {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.btn-neumorphic:hover {
-  box-shadow: 3px 3px 6px #121417,
-    -3px -3px 6px #22262b;
-  transform: scale(0.98);
+.suborders-list {
+    border-top: 1px solid var(--panel-border);
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 14px;
 }
 
-.btn-neumorphic:active {
-  box-shadow: inset 4px 4px 8px #121417,
-    inset -4px -4px 8px #22262b;
+.suborder-row {
+    align-items: center;
+    background: var(--bg-dark);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, auto);
+    padding: 12px;
+}
+
+.suborder-row strong {
+    color: var(--text-light);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.suborder-actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(110px, 1fr) auto auto;
+}
+
+.empty-order {
+    border: 1px dashed var(--panel-border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    padding: 16px;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .planning-page {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+    }
+
+    .delete-row,
+    .form-grid,
+    .process-route,
+    .order-actions-grid,
+    .suborder-row {
+        grid-template-columns: 1fr;
+    }
+
+    .order-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .suborder-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .route-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

@@ -1,25 +1,211 @@
-<<div class="card-maquina p-4" style="max-width: 600px; margin: auto;">
-  <h5 class="fw-bold text-white mb-4">🏢 Planejamento (Nova OF)</h5>
+<div class="container-escritorio planning-page">
+  <div class="planning-shell">
+    <div class="panel planning-panel">
+      <div class="panel-header planning-header">
+        <span class="planning-icon">PL</span>
+        <span>Planejamento de Produção</span>
+      </div>
 
-  <div class="mb-3">
-    <label class="form-label text-uppercase small opacity-50">Número da Ordem (OF / OP)</label>
-    <input type="text" class="form-control-neumorphic" [(ngModel)]="novaOF.numeroOrdem" placeholder="Ex: OP-2026-001">
+      <form (ngSubmit)="gerarOrdem()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="order-code">NÚMERO DA OF</label>
+            <input
+              id="order-code"
+              type="text"
+              [ngModel]="novaOrdem.numeroOrdem"
+              (ngModelChange)="atualizarNumeroOrdemDigitado($event)"
+              (blur)="normalizarNumeroOrdemCampo()"
+              name="numeroOrdem"
+              placeholder="Ex: OF-001"
+              required>
+            <div *ngIf="ordemJaExiste" class="field-warning">
+              Código de OF já cadastrado.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="order-quantity">QUANTIDADE TOTAL</label>
+            <input
+              id="order-quantity"
+              type="number"
+              [(ngModel)]="novaOrdem.quantidadeTotal"
+              name="quantidadeTotal"
+              placeholder="Ex: 10"
+              min="1"
+              required>
+          </div>
+        </div>
+
+        <div class="route-header">
+          <div>
+            <label>SUBCONJUNTOS</label>
+            <span>{{ textoResumoSubconjuntos }}</span>
+          </div>
+          <button type="button" class="btn btn-blue btn-compact" (click)="adicionarSubconjunto()">
+            Adicionar
+          </button>
+        </div>
+
+        <div class="process-route">
+          <div class="route-step" *ngFor="let subconjunto of subconjuntos; let i = index; trackBy: trackSubconjunto">
+            <label class="route-toggle" [for]="'subset-letter-' + i">
+              <span>{{ subconjunto.letra || '-' }}</span>
+            </label>
+
+            <div class="route-step-body">
+              <div class="subset-grid">
+                <div>
+                  <label [for]="'subset-letter-' + i">LETRA</label>
+                  <input
+                    [id]="'subset-letter-' + i"
+                    type="text"
+                    [ngModel]="subconjunto.letra"
+                    (ngModelChange)="atualizarLetraSubconjunto(subconjunto, $event)"
+                    [name]="'letra' + i"
+                    maxlength="1"
+                    required>
+                </div>
+                <div>
+                  <label [for]="'subset-steps-' + i">ETAPAS</label>
+                  <input
+                    [id]="'subset-steps-' + i"
+                    type="number"
+                    [(ngModel)]="subconjunto.quantidadeEtapas"
+                    [name]="'quantidadeEtapas' + i"
+                    min="1"
+                    required>
+                </div>
+              </div>
+              <button type="button" class="btn-link-danger" (click)="removerSubconjunto(i)">
+                Remover subconjunto
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-orange btn-full mt-4" [disabled]="!podeGerarOrdem">
+          {{ isCarregando ? 'Criando OF...' : 'Criar Ordem de Produção' }}
+        </button>
+      </form>
+
+      <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-top: 15px;" role="status" aria-live="polite">
+        {{ mensagemFeedback }}
+      </div>
+
+      <hr class="panel-divider">
+
+      <div class="form-group">
+        <label for="order-delete">EXCLUIR ORDEM</label>
+        <div class="delete-row">
+          <select id="order-delete" [(ngModel)]="ordemParaExcluir" (ngModelChange)="ordemExclusaoPendente = ''" name="ordemExcluir">
+            <option value="">-- SELECIONE A ORDEM --</option>
+            <option *ngFor="let ordem of ordens; trackBy: trackOrdem" [value]="ordem.numeroOrdem">
+              {{ ordem.numeroOrdem }} (Qtd: {{ ordem.quantidadeTotal }})
+            </option>
+          </select>
+          <button type="button" class="btn btn-red" (click)="excluirOrdem()" [disabled]="!ordemParaExcluir || isCarregando">
+            {{ ordemExclusaoPendente === ordemParaExcluir ? 'Confirmar' : 'Excluir' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="orders-management">
+      <article class="panel order-card" *ngFor="let ordem of ordens; trackBy: trackOrdem">
+        <div class="order-card-header">
+          <div>
+            <h3>{{ ordem.numeroOrdem }}</h3>
+            <span>Criada em {{ formatarData(ordem.dataCriacao) }}</span>
+          </div>
+          <strong>{{ progressoPercentual(ordem) }}%</strong>
+        </div>
+
+        <div class="order-stats">
+          <div>
+            <span>Total</span>
+            <strong>{{ ordem.quantidadeTotal || 0 }}</strong>
+          </div>
+          <div>
+            <span>Produzido</span>
+            <strong>{{ ordem.quantidadeProduzida || 0 }}</strong>
+          </div>
+          <div>
+            <span>Prioridade</span>
+            <strong>{{ ordem.prioridade || 5 }}</strong>
+          </div>
+          <div>
+            <span>Etapas</span>
+            <strong>{{ ordem.subOrdens?.length || 0 }}</strong>
+          </div>
+        </div>
+
+        <div class="order-actions-grid">
+          <div class="form-group">
+            <label [for]="'quantity-' + ordem.numeroOrdem">QUANTIDADE</label>
+            <div class="inline-action">
+              <input [id]="'quantity-' + ordem.numeroOrdem" type="number" min="1" [(ngModel)]="quantidadeEdicao[ordem.numeroOrdem || '']" [name]="'quantidade' + ordem.numeroOrdem">
+              <button type="button" class="btn btn-blue" (click)="alterarQuantidade(ordem)" [disabled]="isCarregando">Salvar</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label [for]="'priority-' + ordem.numeroOrdem">PRIORIDADE</label>
+            <div class="inline-action">
+              <select [id]="'priority-' + ordem.numeroOrdem" [(ngModel)]="prioridadeEdicao[ordem.numeroOrdem || '']" [name]="'prioridade' + ordem.numeroOrdem">
+                <option *ngFor="let prioridade of prioridadeOptions" [ngValue]="prioridade">{{ prioridade }}</option>
+              </select>
+              <button type="button" class="btn btn-blue" (click)="alterarPrioridade(ordem)" [disabled]="isCarregando">Salvar</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label [for]="'status-' + ordem.numeroOrdem">STATUS DA ORDEM</label>
+            <div class="inline-action">
+              <select [id]="'status-' + ordem.numeroOrdem" [(ngModel)]="statusOrdemEdicao[ordem.numeroOrdem || '']" [name]="'status' + ordem.numeroOrdem">
+                <option value="">-- ALTERAR --</option>
+                <option *ngFor="let status of statusOptions" [ngValue]="status">{{ status }}</option>
+              </select>
+              <button type="button" class="btn btn-orange" (click)="alterarStatusOrdem(ordem)" [disabled]="isCarregando">Aplicar</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label [for]="'new-step-' + ordem.numeroOrdem">NOVA ETAPA</label>
+            <div class="inline-action">
+              <input [id]="'new-step-' + ordem.numeroOrdem" type="text" maxlength="1" [(ngModel)]="letraNovaSubOrdem[ordem.numeroOrdem || '']" [name]="'novaEtapa' + ordem.numeroOrdem" placeholder="Letra">
+              <button type="button" class="btn btn-green" (click)="criarNovaSubOrdem(ordem)" [disabled]="isCarregando">Criar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="suborders-list" *ngIf="ordem.subOrdens?.length; else semEtapas">
+          <div class="suborder-row" *ngFor="let subOrdem of ordem.subOrdens; trackBy: trackSubOrdem">
+            <div>
+              <strong>{{ subOrdem.codigoEtapa }}</strong>
+              <span>{{ subOrdem.quantidadeProduzida || 0 }} / {{ subOrdem.quantidadeTotal || 0 }} peças</span>
+            </div>
+            <div class="suborder-actions">
+              <select [(ngModel)]="statusSubOrdemEdicao[subOrdem.codigoEtapa || '']" [name]="'statusSub' + subOrdem.codigoEtapa" [attr.aria-label]="'Alterar status da etapa ' + subOrdem.codigoEtapa">
+                <option value="">Status</option>
+                <option *ngFor="let status of statusOptions" [ngValue]="status">{{ status }}</option>
+              </select>
+              <button type="button" class="btn btn-small btn-orange" (click)="alterarStatusSubOrdem(subOrdem)" [disabled]="isCarregando">Aplicar</button>
+              <button type="button" class="btn btn-small btn-red" (click)="excluirSubOrdem(subOrdem.codigoEtapa)" [disabled]="isCarregando">
+                {{ subOrdemExclusaoPendente === subOrdem.codigoEtapa ? 'Confirmar' : 'Excluir' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #semEtapas>
+          <div class="empty-order">Nenhuma etapa cadastrada para esta ordem.</div>
+        </ng-template>
+      </article>
+
+      <div class="empty-order" *ngIf="ordens.length === 0 && !isCarregando">
+        Nenhuma ordem cadastrada.
+      </div>
+    </div>
   </div>
-
-  <div class="mb-3">
-    <label class="form-label text-uppercase small opacity-50">Qtd. Solicitada</label>
-    <input type="number" class="form-control-neumorphic" [(ngModel)]="novaOF.quantidadeTotal" min="1">
-  </div>
-
-  <div class="mb-4">
-    <label class="form-label text-uppercase small opacity-50">Máquina Ideal (Opcional)</label>
-    <select class="form-control-neumorphic" [(ngModel)]="novaOF.maquinaId">
-      <option value="">-- QUALQUER MÁQUINA --</option>
-      <option *ngFor="let m of listaDeMaquinas" [value]="m.id">{{ m.nome }}</option>
-    </select>
-  </div>
-
-  <button class="btn btn-orange w-100 fw-bold py-3" (click)="gerarProducao()">
-    Gerar Ordem de Serviço
-  </button>
 </div>

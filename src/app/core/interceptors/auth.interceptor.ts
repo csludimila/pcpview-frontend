@@ -1,23 +1,38 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // 1. CORREÇÃO: Se a rota for de login ou cadastro (/auth), ignora o token e passa direto
-  if (req.url.includes('/auth')) {
+  const router = inject(Router);
+  const authService = inject(AuthService);
+
+  if (isAuthPublicRequest(req)) {
     return next(req);
   }
 
-  // 2. Pegamos o token do localStorage para as outras rotas (produtos, máquinas, etc)
-  const token = localStorage.getItem('auth_token');
+  return next(withAuthHeader(req, authService.getToken())).pipe(
+    catchError((error: HttpErrorResponse) => encerrarSessao(error, router, authService))
+  );
+};
 
-  // 3. Se o token existir, coloca o crachá de autorização na requisição
-  if (token) {
-    const cloned = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    return next(cloned);
+function withAuthHeader(req: HttpRequest<unknown>, token: string | null) {
+  return token
+    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    : req;
+}
+
+function isAuthPublicRequest(req: HttpRequest<unknown>): boolean {
+  return req.url.endsWith('/auth/login') ||
+    (req.url.endsWith('/auth') && req.method === 'POST');
+}
+
+function encerrarSessao(error: HttpErrorResponse, router: Router, authService: AuthService) {
+  if (error.status === 401 && !router.url.includes('/login')) {
+    authService.logout();
+    router.navigate(['/login']);
   }
 
-  return next(req);
-};
+  return throwError(() => error);
+}

@@ -1,226 +1,493 @@
-.container-fluid {
-  background-color: #1a1d21;
-  min-height: 100vh;
-  padding: 40px;
+﻿.machine-page {
+    width: min(1280px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 28px 0 42px;
 }
 
-/* Card Neumórfico - O segredo está aqui */
-.card-maquina {
-  background: #1a1d21 !important;
-  /* Mesma cor do fundo */
-  border: none !important;
-  border-radius: 30px !important;
-  /* Sombra escura embaixo e clara em cima */
-  box-shadow: 9px 9px 16px #121417,
-    -9px -9px 16px #22262b;
-  transition: all 0.3s ease;
-  padding: 20px;
+.machine-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 24px 0 30px;
+    gap: 18px;
 }
 
-.card-maquina:hover {
-  /* Efeito de "afundar" ou brilhar ao passar o mouse */
-  box-shadow: inset 6px 6px 12px #121417,
-    inset -6px -6px 12px #22262b;
-  transform: scale(0.98);
+.machine-page-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: 600;
 }
 
-/* Títulos com brilho suave */
-h1,
-.card-title {
-  color: #ffffff;
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+.add-machine-area {
+    display: flex;
+    gap: 10px;
 }
 
-/* Badge do Operador estilizada */
-.badge-operador {
-  background: #1a1d21;
-  border-radius: 10px;
-  box-shadow: inset 2px 2px 5px #121417,
-    inset -2px -2px 5px #22262b;
-  color: #00d4ff;
-  padding: 10px 20px;
-  border: none;
+.search-bar,
+.sector-select {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--panel-border);
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: white;
+    width: 300px;
 }
 
-
-/* 1. Display da OF (Aquele campo que parece um buraco no card) */
-.of-ativa-display {
-  background: #1a1d21;
-  padding: 12px;
-  border-radius: 12px;
-  /* Sombra interna para dar profundidade */
-  box-shadow: inset 6px 6px 12px #121417,
-    inset -4px -4px 10px #22262b;
-  margin-bottom: 20px;
+.sector-select {
+    width: 190px;
 }
 
-/* 2. Base dos Botões Coloridos */
-.btn-modelo {
-  border: none;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 12px 5px;
-  color: white;
-  text-transform: uppercase;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  /* Sombra externa sutil */
-  box-shadow: 4px 4px 10px #121417;
+.id-input {
+    width: 160px;
 }
 
-/* 3. Cores e Gradientes específicos do modelo */
-.btn-start {
-  background: linear-gradient(145deg, #2ecc71, #27ae60);
+.search-bar:focus,
+.sector-select:focus {
+    border-color: var(--accent);
+    outline: none;
 }
 
-.btn-start:hover {
-  box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+.empty-message {
+    text-align: center;
+    color: var(--text-muted);
+    margin-top: 50px;
+    font-size: 1.1em;
 }
 
-.btn-pause {
-  background: linear-gradient(145deg, #f39c12, #e67e22);
+.sector-band {
+    margin-top: 26px;
 }
 
-.btn-pause:hover {
-  box-shadow: 0 0 15px rgba(243, 156, 18, 0.4);
+.machine-search-panel {
+    align-items: center;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+    margin-bottom: 18px;
 }
 
-.btn-maintenance {
-  background: linear-gradient(145deg, #e74c3c, #c0392b);
+.machine-search-copy h3 {
+    margin: 0 0 4px;
 }
 
-.btn-maintenance:hover {
-  box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+.machine-search-copy span,
+.found-machine-panel span {
+    color: var(--text-muted);
+    font-size: 0.88em;
 }
 
-.btn-running {
-  background: linear-gradient(145deg, #3498db, #2980b9);
+.machine-search-form {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.btn-running:hover {
-  box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+.found-machine-panel {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    margin-bottom: 18px;
 }
 
-/* O botão de Apontar é o que tem o maior destaque (Roxo) */
-.btn-finish {
-  background: linear-gradient(145deg, #9b59b6, #8e44ad);
-  box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+.found-machine-panel strong {
+    color: var(--accent);
 }
 
-.btn-finish:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(155, 89, 182, 0.6);
+.sector-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--panel-border);
 }
 
-/* Efeito de clique para todos os botões coloridos */
-.btn-modelo:active {
-  transform: scale(0.95);
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4);
+.sector-title h3 {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 1.05em;
+    font-weight: 900;
+    letter-spacing: 0;
 }
 
-/* Isso vai fazer o X ficar pequeno, vermelho e no canto superior direito */
-.btn-delete-x {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: transparent;
-  border: 1px solid #dc3545;
-  color: #dc3545;
-  border-radius: 4px;
-  width: 22px;
-  height: 22px;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: all 0.2s;
+.sector-title span {
+    color: var(--accent);
+    font-size: 0.82em;
+    font-weight: 800;
 }
 
-.btn-delete-x:hover {
-  background: #dc3545;
-  color: white;
+.machine-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
 }
 
-
-
-/* Estilo para a Tabela de Rastreabilidade no fundo */
-.custom-table {
-  border-collapse: separate;
-  border-spacing: 0 8px;
+.machine-card {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 8px 8px 18px var(--shadow-dark), -8px -8px 18px rgba(39, 44, 50, 0.42);
 }
 
-.custom-table thead th {
-  border: none;
-  font-size: 0.7rem;
-  letter-spacing: 1px;
+.machine-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 15px;
 }
 
-/* Estilização Neumórfica para os Modais */
-.modal-content.card-maquina {
-  padding: 30px;
-  box-shadow: 20px 20px 60px #121417,
-    -20px -20px 60px #22262b;
+.machine-card h3 {
+    font-size: 1.2em;
+    margin-bottom: 0;
+    color: var(--text-light);
+    margin-top: 0;
+    overflow-wrap: anywhere;
 }
 
-.list-group-item-action.bg-dark {
-  background-color: #1a1d21 !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: 4px 4px 8px #121417,
-    -4px -4px 8px #22262b;
-  margin-bottom: 12px;
-  transition: all 0.2s ease;
+.machine-sector-pill {
+    display: inline-flex;
+    margin-top: 6px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--accent);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    background: var(--accent-soft);
+    font-size: 0.68em;
+    font-weight: 900;
 }
 
-.list-group-item-action.bg-dark:hover {
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 12px #121417,
-    -6px -6px 12px #22262b;
-  border-color: #00d4ff !important;
+.queue-counter {
+    flex: 0 0 auto;
+    color: var(--accent);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.72em;
+    font-weight: 800;
+    background: var(--accent-soft);
 }
 
-/* Estilização focada em VISIBILIDADE para campos escuros */
-.form-control-neumorphic {
-  background-color: #22262b !important; /* Cinza um pouco mais claro que o fundo para contraste */
-  color: #ffffff !important;           /* TEXTO BRANCO para leitura perfeita */
-  border: 1px solid #32383e !important; /* Borda sutil para definir o limite do campo */
-  border-radius: 8px !important;
-  padding: 12px 15px !important;
-  font-weight: 500;
-  
-  /* Sombra interna para manter o efeito de profundidade, mas sem escurecer demais */
-  box-shadow: inset 4px 4px 8px #121417 !important;
+.machine-card-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
 }
 
-/* Garante que o texto dentro das opções do Select também seja visível */
-select.form-control-neumorphic option {
-  background-color: #22262b;
-  color: #ffffff;
+.icon-btn {
+    background: none;
+    border-radius: 6px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+    line-height: 1;
+    display: inline-grid;
+    place-items: center;
 }
 
-/* Estilo para as Labels (títulos dos campos) ficarem bem claras */
-.form-label {
-  color: #ffffff !important;
-  font-weight: bold;
-  opacity: 0.9; /* Quase 100% de brilho */
-  margin-bottom: 8px;
-  display: block;
+.delete-btn {
+    border: 1px solid var(--status-maintenance);
+    color: var(--status-maintenance);
 }
 
-/* Estilo para quando o campo estiver em foco */
-.form-control-neumorphic:focus {
-  outline: none;
-  box-shadow: inset 2px 2px 5px #121417,
-    inset -2px -2px 5px #22262b,
-    0 0 8px rgba(0, 212, 255, 0.2) !important;
+.delete-btn:hover {
+    background: var(--status-maintenance);
+    color: white;
 }
 
-/* Especial para o Select (remover a seta padrão e colocar uma customizada) */
-select.form-control-neumorphic {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px !important;
+.delete-btn.confirming {
+    background: var(--status-maintenance);
+    color: white;
 }
+
+.edit-btn {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.edit-btn:hover,
+.save-btn:hover {
+    background: var(--accent-soft);
+}
+
+.save-btn {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.cancel-btn {
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
+}
+
+.cancel-btn:hover {
+    border-color: var(--text-light);
+    color: var(--text-light);
+}
+
+.machine-edit-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+}
+
+.machine-edit-input {
+    width: 100%;
+    min-width: 0;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--text-light);
+    padding: 8px 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.machine-edit-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.machine-edit-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.status-area {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.dot-green { background-color: var(--status-start); box-shadow: 0 0 5px var(--status-start); }
+.dot-blue { background-color: var(--accent); box-shadow: 0 0 5px var(--accent); }
+.dot-red { background-color: var(--status-maintenance); box-shadow: 0 0 5px var(--status-maintenance); }
+
+.status-text {
+    font-weight: bold;
+    font-size: 0.9em;
+    letter-spacing: 0.5px;
+}
+
+.active-production {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 18px 0;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 212, 255, 0.28);
+    background: var(--accent-soft);
+}
+
+.active-production span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.72em;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.active-production strong {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.88em;
+    overflow-wrap: anywhere;
+}
+
+.active-production small {
+    display: block;
+    color: var(--accent);
+    font-size: 0.76em;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+.btn-toggle-status {
+    width: 100%;
+    padding: 10px;
+    background-color: transparent;
+    border: 1px dashed var(--text-muted);
+    color: var(--text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8em;
+}
+
+.btn-toggle-status:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background-color: var(--accent-soft);
+}
+
+.sem-maquina-panel {
+    margin-bottom: 25px;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 8px 8px 18px var(--shadow-dark), -8px -8px 18px rgba(39, 44, 50, 0.42);
+}
+
+.sem-maquina-panel h3,
+.queue-section h4 {
+    margin: 0 0 12px 0;
+    color: var(--text-light);
+}
+
+.queue-panel-header,
+.queue-section-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.queue-panel-header span,
+.queue-section-title span {
+    color: var(--text-muted);
+    font-size: 0.82em;
+    font-weight: 700;
+}
+
+.queue-section-title h4 {
+    margin-bottom: 0;
+}
+
+.queue-section {
+    margin-top: 18px;
+    border-top: 1px solid var(--panel-border);
+    padding-top: 16px;
+}
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.queue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-light);
+    font-size: 0.88em;
+}
+
+.queue-item[draggable="true"] {
+    cursor: grab;
+}
+
+.queue-item span {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.queue-item small {
+    display: block;
+    color: var(--accent);
+    font-size: 0.78em;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+.queue-empty {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    padding: 10px;
+    border: 1px dashed var(--panel-border);
+    border-radius: 8px;
+}
+
+.queue-remove-btn {
+    background: transparent;
+    border: 1px solid var(--status-maintenance);
+    color: var(--status-maintenance);
+    border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    display: grid;
+    place-items: center;
+}
+
+.queue-remove-btn:hover {
+    background: var(--status-maintenance);
+    color: white;
+}
+
+.queue-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+@media (max-width: 768px) {
+    .machine-page {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+    }
+
+    .machine-page-header,
+    .add-machine-area,
+    .queue-add,
+    .active-production,
+    .machine-search-panel,
+    .machine-search-form,
+    .found-machine-panel {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-bar {
+        width: 100%;
+    }
+
+    .sector-select {
+        width: 100%;
+    }
+
+    .id-input {
+        width: 100%;
+    }
+
+    .machine-title-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .machine-card-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
 
