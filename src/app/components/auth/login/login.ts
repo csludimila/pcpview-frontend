@@ -13,37 +13,38 @@ import { apiErrorMessage } from '../../../shared/api-error';
   styleUrls: ['./login.css']
 })
 export class LoginComponent {
-  private authService = inject(AuthService);
-  private router = inject(Router);
 
-  email = '';
-  password = '';
-  
-  isLoading = false;
-  errorMessage = '';
+  credenciais = {
+    email: '',
+    password: ''
+  };
 
-  onSubmit() {
-    if (!this.email || !this.password) {
-      this.errorMessage = 'Por favor, preencha todos os campos.';
-      return;
+  constructor(
+    private authService: AuthService, 
+    private router: Router
+  ) {}
+
+  onLogin(): void {
+    if (this.credenciais.email && this.credenciais.password) {
+      
+      this.authService.login(this.credenciais).subscribe({
+        // CORREÇÃO: Ajustado para a seta correta (=>)
+        next: (res: any) => {
+          this.authService.setToken(res.token);
+          console.log('Token recebido:', res.token);
+          
+          alert('Login efetuado com sucesso!');
+          this.router.navigate(['/escritorio']);
+        },
+        // CORREÇÃO: Ajustado para a seta correta (=>)
+        error: (err: any) => {
+          console.error('Erro no login:', err);
+          alert('Falha na autenticação. Verifique e-mail e senha.');
+        }
+      });
+
+    } else {
+      alert('Por favor, preencha todos os campos.');
     }
-
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    this.authService.login({ email: this.email, password: this.password }).subscribe({
-      next: () => {
-        this.isLoading = false;
-        const role = this.authService.getRole();
-        this.router.navigate([role === 'ADMIN' ? '/planejamento' : '/operacao']);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        const mensagem = apiErrorMessage(err, 'Credenciais inválidas. Verifique o login e a senha.');
-        this.errorMessage = mensagem.includes('UserDetailsService returned null')
-          ? 'Credenciais inválidas. Verifique o login e a senha.'
-          : mensagem;
-      }
-    });
   }
 }
