@@ -1,16 +1,20 @@
 # PCPView Frontend
 
-Frontend Angular do PCPView.
+Frontend Angular do PCPView, implementado contra o back-end oficial:
 
-Esta branch `feature-processo-completo` amplia o fluxo de usinagem para processo completo, mantendo a identidade visual dark do prototipo: Planejamento cria roteiro, Maquinas funciona como Centros de Trabalho, Operacao aponta etapas e Acompanhamento mostra a rota da OF.
+```text
+https://github.com/Carlos-DMS/PCPView.git
+```
+
+O front consome somente as funcionalidades que existem nesse back-end: autenticação JWT, usuários, produtos, máquinas, ordens, subordens e execuções.
 
 ## Rodar localmente
 
-O jeito mais simples é usar o script do backend, que sobe PostgreSQL, backend e frontend:
+Suba o back-end do Carlos em `http://localhost:8080` e depois rode o front:
 
 ```powershell
-cd C:\Users\alexj\OneDrive\Desktop\PCPView
-.\scripts\start-local-dev.ps1
+cd C:\Users\alexj\OneDrive\Desktop\pcpview-frontend
+npm start
 ```
 
 Frontend:
@@ -21,10 +25,9 @@ http://localhost:4200
 
 ## Login local
 
-```text
-Administrador: admin@pcpview.local / 123456
-Operador:      operador@pcpview.local / 123456
-```
+O back-end cria um administrador inicial pelo arquivo `AdminSeedConfig.java`. Consulte esse seed no back-end local e troque a senha antes de publicar.
+
+Novos usuários cadastrados entram como `USER`. Um administrador pode promovê-los para `ADMIN`.
 
 ## Comandos úteis
 
@@ -74,18 +77,12 @@ docker build --build-arg API_URL=https://sua-api.com -t pcpview-frontend .
 docker run --rm -p 4200:80 pcpview-frontend
 ```
 
-Tambem e possivel subir tudo pelo compose completo do backend:
-
-```powershell
-cd C:\Users\alexj\OneDrive\Desktop\PCPView
-docker compose -f compose.full.yaml --env-file .env.example up --build
-```
-
 ## Telas principais
 
 ```text
 /login
 /planejamento
+/produtos
 /maquinas
 /operacao
 /acompanhamento
@@ -93,11 +90,24 @@ docker compose -f compose.full.yaml --env-file .env.example up --build
 ```
 
 `/cadastro` aparece apenas para administradores.
-Produtos permanece no codigo, mas a rota `/produtos` redireciona para Planejamento enquanto a tela fica fora do fluxo principal.
 
-## Fluxo visual atual
+## Funcionalidades implementadas no front
 
-1. Planejamento cria a OF com roteiro de Corte, Caldeiraria, Usinagem, Acabamento, Inspecao e Expedicao.
-2. Maquinas/Centros mostra cards agrupados por setor e fila abaixo de cada centro.
-3. Operacao mostra apenas etapas liberadas para o setor/centro escolhido.
-4. Acompanhamento pesquisa por OF, produto, etapa, setor ou centro e exibe a linha do processo em miniatura.
+1. Login com JWT e controle visual de rotas para operador/admin.
+2. Cadastro, listagem, promoção para admin e desativação de usuários.
+3. CRUD de produtos.
+4. CRUD de máquinas, busca por ID e alternância de status operacional.
+5. Criação de ordens por subconjuntos/letras e quantidade de etapas.
+6. Alteração de quantidade, prioridade e status de ordens.
+7. Criação, exclusão e alteração manual de status de subordens.
+8. Início, finalização com quantidade produzida e cancelamento de execuções.
+9. Acompanhamento por ordens aguardando, em produção e finalizadas.
+
+## Pontos para pedir ao back-end
+
+- Liberar `PATCH` no CORS. O back usa endpoints PATCH, mas o CORS atual libera apenas GET, POST, PUT, DELETE e OPTIONS.
+- Configurar CORS por variável de ambiente para permitir a URL do front quando publicar na nuvem.
+- Se quiser acompanhamento mais preciso, incluir `status` em `OrderResponseDTO` e `SubOrderResponseDTO`.
+- Se quiser vincular OF a produto, incluir produto no `OrderRequestDTO`/`OrderResponseDTO`.
+- Se quiser fila por máquina, setor, roteiro industrial, pausa/retomada, setup de primeira peça, manutenção com retorno para fila ou dashboards, esses endpoints ainda não existem no back oficial.
+- Para nuvem com banco persistente, trocar o H2 em memória por um banco hospedado, como PostgreSQL, MySQL ou H2 em arquivo persistente com volume.

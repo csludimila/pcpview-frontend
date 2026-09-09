@@ -16,15 +16,12 @@ export class RegisterComponent {
   mensagemFeedback = '';
   isCarregando = false;
   usuarios: UserResponseDTO[] = [];
-  usuarioResetSenhaId = '';
-  senhasReset: Record<string, string> = {};
-  resetSenhaCarregandoId = '';
+  usuarioDesativacaoPendenteId = '';
   
   novoUsuario: RegisterRequestDTO = {
     userName: '',
     email: '',
-    password: '',
-    role: 'USER'
+    password: ''
   };
 
   constructor(private authService: AuthService) {}
@@ -38,14 +35,13 @@ export class RegisterComponent {
   }
 
   get senhaValida(): boolean {
-    return this.novoUsuario.password.trim().length >= 8;
+    return this.novoUsuario.password.trim().length > 0;
   }
 
   get podeCadastrar(): boolean {
     return !!this.novoUsuario.userName.trim() &&
       this.emailValido &&
       this.senhaValida &&
-      !!this.novoUsuario.role &&
       !this.isCarregando;
   }
 
@@ -63,7 +59,7 @@ export class RegisterComponent {
     }
 
     if (!this.senhaValida) {
-      this.mensagemFeedback = 'A senha deve ter pelo menos 8 caracteres.';
+      this.mensagemFeedback = 'Informe uma senha para cadastrar o usuário.';
       return;
     }
 
@@ -71,10 +67,11 @@ export class RegisterComponent {
     this.authService.registrar({
       ...this.novoUsuario,
       userName: this.novoUsuario.userName.trim().toUpperCase(),
-      email: this.novoUsuario.email.trim().toLowerCase()
+      email: this.novoUsuario.email.trim().toLowerCase(),
+      password: this.novoUsuario.password.trim()
     }).subscribe({
       next: () => {
-        this.novoUsuario = { userName: '', email: '', password: '', role: 'USER' };
+        this.novoUsuario = { userName: '', email: '', password: '' };
         this.mensagemFeedback = 'Usuário cadastrado com sucesso.';
         this.carregarUsuarios();
         this.isCarregando = false;
@@ -90,8 +87,8 @@ export class RegisterComponent {
     this.authService.listarUsuarios().subscribe({
       next: (usuarios) => {
         this.usuarios = usuarios;
-        if (this.usuarioResetSenhaId && !usuarios.some((usuario) => usuario.id === this.usuarioResetSenhaId)) {
-          this.cancelarRedefinicaoSenha();
+        if (this.usuarioDesativacaoPendenteId && !usuarios.some((usuario) => usuario.id === this.usuarioDesativacaoPendenteId)) {
+          this.usuarioDesativacaoPendenteId = '';
         }
       },
       error: (err: unknown) => {
@@ -100,45 +97,52 @@ export class RegisterComponent {
     });
   }
 
-  iniciarRedefinicaoSenha(usuario: UserResponseDTO) {
+  promoverParaAdmin(usuario: UserResponseDTO) {
     if (!usuario.id) return;
-
-    this.usuarioResetSenhaId = usuario.id;
-    this.senhasReset[usuario.id] = '';
-    this.mensagemFeedback = '';
-  }
-
-  cancelarRedefinicaoSenha() {
-    this.usuarioResetSenhaId = '';
-  }
-
-  senhaResetValida(usuarioId?: string): boolean {
-    if (!usuarioId) return false;
-    return (this.senhasReset[usuarioId] || '').trim().length >= 8;
-  }
-
-  redefinirSenha(usuario: UserResponseDTO) {
-    if (!usuario.id) return;
-
-    const novaSenha = (this.senhasReset[usuario.id] || '').trim();
-    if (novaSenha.length < 8) {
-      this.mensagemFeedback = 'A nova senha deve ter pelo menos 8 caracteres.';
+    if (usuario.role === 'ADMIN') {
+      this.mensagemFeedback = 'Este usuário já é administrador.';
       return;
     }
 
-    this.resetSenhaCarregandoId = usuario.id;
+    this.isCarregando = true;
     this.mensagemFeedback = '';
 
-    this.authService.redefinirSenha(usuario.id, { password: novaSenha }).subscribe({
+    this.authService.promoverParaAdmin(usuario.id).subscribe({
       next: () => {
-        this.senhasReset[usuario.id || ''] = '';
-        this.usuarioResetSenhaId = '';
-        this.resetSenhaCarregandoId = '';
-        this.mensagemFeedback = `Senha de ${usuario.email || usuario.userName || 'usuário'} redefinida com sucesso.`;
+        this.mensagemFeedback = `${this.loginUsuario(usuario)} promovido para administrador.`;
+        this.carregarUsuarios();
+        this.isCarregando = false;
       },
       error: (err: unknown) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao redefinir senha.');
-        this.resetSenhaCarregandoId = '';
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao promover usuário.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  desativarUsuario(usuario: UserResponseDTO) {
+    if (!usuario.id) return;
+
+    if (this.usuarioDesativacaoPendenteId !== usuario.id) {
+      this.usuarioDesativacaoPendenteId = usuario.id;
+      this.mensagemFeedback = 'Clique novamente em desativar para confirmar.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.mensagemFeedback = '';
+
+    this.authService.desativarUsuario(usuario.id).subscribe({
+      next: () => {
+        this.usuarioDesativacaoPendenteId = '';
+        this.mensagemFeedback = `${this.loginUsuario(usuario)} desativado com sucesso.`;
+        this.carregarUsuarios();
+        this.isCarregando = false;
+      },
+      error: (err: unknown) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao desativar usuário.');
+        this.usuarioDesativacaoPendenteId = '';
+        this.isCarregando = false;
       }
     });
   }
@@ -146,5 +150,9 @@ export class RegisterComponent {
   textoPerfil(role?: string): string {
     if (role === 'ADMIN') return 'Administrador';
     return 'Operador';
+  }
+
+  loginUsuario(usuario: UserResponseDTO): string {
+    return usuario.login || '-';
   }
 }

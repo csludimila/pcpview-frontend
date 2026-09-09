@@ -7,6 +7,7 @@
 
   <nav class="nav-menu" aria-label="Navegação principal">
       <a *ngIf="isAdmin()" class="btn nav-btn" routerLink="/planejamento" routerLinkActive="active" aria-label="Abrir Planejamento"><span class="nav-code">PL</span> Planejamento</a>
+      <a *ngIf="isAdmin()" class="btn nav-btn" routerLink="/produtos" routerLinkActive="active" aria-label="Abrir Produtos"><span class="nav-code">PR</span> Produtos</a>
       <a class="btn nav-btn" routerLink="/operacao" routerLinkActive="active" aria-label="Abrir Operação"><span class="nav-code">OP</span> Operação</a>
       <a class="btn nav-btn" routerLink="/acompanhamento" routerLinkActive="active" aria-label="Abrir Acompanhamento"><span class="nav-code">AC</span> Acompanhamento</a>
       <a class="btn nav-btn" routerLink="/maquinas" routerLinkActive="active" aria-label="Abrir Máquinas"><span class="nav-code">MQ</span> Máquinas</a>

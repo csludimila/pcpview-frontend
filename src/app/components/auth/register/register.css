@@ -135,22 +135,6 @@
     color: var(--text-light);
 }
 
-.reset-password-box {
-    border-top: 1px solid var(--panel-border);
-    padding-top: 12px;
-}
-
-.reset-password-field {
-    margin-bottom: 10px;
-}
-
-.reset-password-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
-
 .empty-users {
     padding: 22px;
     border: 1px dashed var(--panel-border);
@@ -178,13 +162,11 @@
         grid-template-columns: 1fr;
     }
 
-    .user-actions,
-    .reset-password-actions {
+    .user-actions {
         justify-content: stretch;
     }
 
-    .user-actions .btn,
-    .reset-password-actions .btn {
+    .user-actions .btn {
         flex: 1;
     }
 }

@@ -1,14 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MachineService, MachineDTO } from '../../services/machine.service';
-import { ExecutionOrderService } from '../../services/execution-order.service';
-import { OrderRequestDTO, OrderResponseDTO, ProcessStepRequestDTO } from '../../models/api.models';
+import { ExecutionOrderService, StatusProducao } from '../../services/execution-order.service';
+import { OrderRequestDTO, OrderResponseDTO, SubOrderResponseDTO } from '../../models/api.models';
 import { apiErrorMessage } from '../../shared/api-error';
 
-interface RoteiroEtapaUI extends ProcessStepRequestDTO {
-  ativa: boolean;
-  sigla: string;
+interface SubconjuntoUI {
+  letra: string;
+  quantidadeEtapas: number;
 }
 
 @Component({
@@ -19,78 +18,46 @@ interface RoteiroEtapaUI extends ProcessStepRequestDTO {
   styleUrls: ['./order-form.css']
 })
 export class OrderFormComponent implements OnInit {
-  private machineService = inject(MachineService);
   private orderService = inject(ExecutionOrderService);
 
-  maquinasDisponiveis: MachineDTO[] = [];
+  readonly statusOptions: StatusProducao[] = ['AGUARDANDO', 'EM_PROCESSAMENTO', 'FINALIZADO', 'CANCELADO'];
+  readonly prioridadeOptions = [1, 2, 3, 4, 5];
+
   ordens: OrderResponseDTO[] = [];
+  subconjuntos: SubconjuntoUI[] = [{ letra: 'A', quantidadeEtapas: 1 }];
 
   novaOrdem = {
     numeroOrdem: '',
     quantidadeTotal: 1
   };
 
-  nomeProdutoRef = '';
-  roteiroEtapas: RoteiroEtapaUI[] = this.criarRoteiroPadrao();
   ordemParaExcluir = '';
   ordemExclusaoPendente = '';
+  subOrdemExclusaoPendente = '';
   isCarregando = false;
   mensagemFeedback = '';
 
-  get ordensAguardando(): OrderResponseDTO[] {
-    return this.ordens.filter((ordem) => ordem.status === 'AGUARDANDO' || !ordem.status);
+  quantidadeEdicao: Record<string, number> = {};
+  prioridadeEdicao: Record<string, number> = {};
+  statusOrdemEdicao: Record<string, StatusProducao | ''> = {};
+  letraNovaSubOrdem: Record<string, string> = {};
+  statusSubOrdemEdicao: Record<string, StatusProducao | ''> = {};
+
+  get totalEtapasPlanejadas(): number {
+    return this.subconjuntos.reduce((total, item) => total + this.quantidadeEtapasValida(item), 0);
   }
 
-  get quantidadeEtapasAtivas(): number {
-    return this.roteiroEtapas.filter((etapa) => etapa.ativa).length;
-  }
+  get textoResumoSubconjuntos(): string {
+    const totalSubconjuntos = this.subconjuntos.length;
+    const totalEtapas = this.totalEtapasPlanejadas;
+    const textoSubconjuntos = totalSubconjuntos === 1 ? '1 subconjunto' : `${totalSubconjuntos} subconjuntos`;
+    const textoEtapas = totalEtapas === 1 ? '1 etapa' : `${totalEtapas} etapas`;
 
-  get etapasSemCentro(): number {
-    return this.ordensAguardando.flatMap((ordem) => ordem.subOrdens || [])
-      .filter((subOrdem) => (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0))
-      .filter((subOrdem) => subOrdem.status === 'AGUARDANDO' || !subOrdem.status)
-      .filter((subOrdem) => !subOrdem.maquinaIdealId)
-      .length;
-  }
-
-  quantidadeNaFilaDaMaquina(machineId: string): number {
-    return this.ordensAguardando.flatMap((ordem) => ordem.subOrdens || [])
-      .filter((subOrdem) => (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0))
-      .filter((subOrdem) => subOrdem.status === 'AGUARDANDO' || !subOrdem.status)
-      .filter((subOrdem) => subOrdem.maquinaIdealId === machineId)
-      .length;
-  }
-
-  maquinasPorSetor(setor: string): MachineDTO[] {
-    return this.maquinasDisponiveis
-      .filter((maquina) => this.normalizarTextoMaiusculo(maquina.setor || 'USINAGEM') === setor)
-      .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-  }
-
-  textoResumoEtapa(etapa: RoteiroEtapaUI): string {
-    if (!etapa.ativa) return 'Etapa fora do roteiro desta OF.';
-    if (!etapa.maquinaIdealId) return 'Sem centro definido. A etapa entrará para alocação manual.';
-
-    const maquina = this.maquinasDisponiveis.find((item) => item.id === etapa.maquinaIdealId);
-    const total = this.quantidadeNaFilaDaMaquina(etapa.maquinaIdealId);
-    const nome = maquina?.nome || 'centro selecionado';
-    return total === 1
-      ? `1 etapa já está na fila de ${nome}.`
-      : `${total} etapas já estão na fila de ${nome}.`;
-  }
-
-  get textoResumoRoteiro(): string {
-    if (this.quantidadeEtapasAtivas === 0) return 'Selecione pelo menos uma etapa do processo.';
-    const primeira = this.roteiroEtapas.find((etapa) => etapa.ativa);
-    return `${this.quantidadeEtapasAtivas} etapas no roteiro. Primeira liberação: ${primeira?.nomeEtapa || '-'}.`;
+    return `${textoSubconjuntos}, ${textoEtapas} geradas pelo back-end.`;
   }
 
   get codigoOrdemNormalizado(): string {
     return this.normalizarTextoMaiusculo(this.novaOrdem.numeroOrdem);
-  }
-
-  get nomeProdutoNormalizado(): string {
-    return this.normalizarTextoMaiusculo(this.nomeProdutoRef);
   }
 
   get ordemJaExiste(): boolean {
@@ -103,37 +70,26 @@ export class OrderFormComponent implements OnInit {
     return !!this.codigoOrdemNormalizado &&
       Number.isInteger(quantidadeTotal) &&
       quantidadeTotal > 0 &&
-      this.quantidadeEtapasAtivas > 0 &&
+      this.totalEtapasPlanejadas > 0 &&
       !this.ordemJaExiste &&
       !this.isCarregando;
   }
 
   ngOnInit() {
-    this.carregarMaquinas();
     this.carregarOrdens();
-  }
-
-  carregarMaquinas() {
-    this.machineService.buscarTodasMaquinas().subscribe({
-      next: (maquinas) => {
-        this.maquinasDisponiveis = maquinas.filter(m => m.operacional);
-      },
-      error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar centros disponíveis.');
-      }
-    });
   }
 
   carregarOrdens() {
     this.orderService.listarOrdens().subscribe({
       next: (dados) => {
         this.ordens = dados;
+        this.prepararCamposEdicao(dados);
         if (this.ordemExclusaoPendente && !dados.some((ordem) => ordem.numeroOrdem === this.ordemExclusaoPendente)) {
           this.ordemExclusaoPendente = '';
         }
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar ordens de serviço.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar ordens de produção.');
       }
     });
   }
@@ -142,36 +98,47 @@ export class OrderFormComponent implements OnInit {
     this.novaOrdem.numeroOrdem = this.codigoOrdemNormalizado;
   }
 
-  normalizarNomeProdutoCampo() {
-    this.nomeProdutoRef = this.nomeProdutoNormalizado;
-  }
-
   atualizarNumeroOrdemDigitado(valor: string) {
     this.novaOrdem.numeroOrdem = this.converterTextoMaiusculo(valor);
   }
 
-  atualizarNomeProdutoDigitado(valor: string) {
-    this.nomeProdutoRef = this.converterTextoMaiusculo(valor);
+  atualizarLetraSubconjunto(item: SubconjuntoUI, valor: string) {
+    item.letra = this.normalizarLetra(valor);
+  }
+
+  adicionarSubconjunto() {
+    this.subconjuntos.push({
+      letra: this.proximaLetraDisponivel(),
+      quantidadeEtapas: 1
+    });
+  }
+
+  removerSubconjunto(index: number) {
+    if (this.subconjuntos.length === 1) {
+      this.mensagemFeedback = 'Mantenha pelo menos um subconjunto para gerar a OF.';
+      return;
+    }
+
+    this.subconjuntos.splice(index, 1);
   }
 
   gerarOrdem() {
     const numeroOrdem = this.codigoOrdemNormalizado;
-    const produtoNome = this.nomeProdutoNormalizado;
     const quantidadeTotal = Number(this.novaOrdem.quantidadeTotal);
-    const roteiroEtapas = this.montarRoteiroPayload();
+    const subconjuntos = this.montarSubconjuntosPayload();
 
     if (!numeroOrdem || !Number.isInteger(quantidadeTotal) || quantidadeTotal <= 0) {
-      this.mensagemFeedback = 'Preencha o SKU do Produto e a Quantidade Solicitada.';
+      this.mensagemFeedback = 'Preencha o número da OF e uma quantidade maior que zero.';
       return;
     }
 
-    if (roteiroEtapas.length === 0) {
-      this.mensagemFeedback = 'Selecione pelo menos uma etapa do roteiro.';
+    if (subconjuntos.length === 0) {
+      this.mensagemFeedback = 'Informe pelo menos um subconjunto com letra e quantidade de etapas.';
       return;
     }
 
     if (this.ordemJaExiste) {
-      this.mensagemFeedback = 'Já existe uma ordem de serviço com esse código.';
+      this.mensagemFeedback = 'Já existe uma ordem de produção com esse código.';
       return;
     }
 
@@ -181,57 +148,163 @@ export class OrderFormComponent implements OnInit {
     const payload: OrderRequestDTO = {
       numeroOrdem,
       quantidadeTotal,
-      produtoNome: produtoNome || undefined,
-      roteiroEtapas
+      subconjuntos
     };
 
     this.orderService.criarOrdemComEtapas(payload).subscribe({
       next: () => {
-        this.mensagemFeedback = `Ordem de Serviço gerada com sucesso. ${this.textoResumoRoteiro}`;
+        this.mensagemFeedback = `Ordem criada com sucesso. ${this.textoResumoSubconjuntos}`;
         this.novaOrdem = { numeroOrdem: '', quantidadeTotal: 1 };
-        this.nomeProdutoRef = '';
-        this.roteiroEtapas = this.criarRoteiroPadrao();
+        this.subconjuntos = [{ letra: 'A', quantidadeEtapas: 1 }];
         this.carregarOrdens();
         this.isCarregando = false;
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao gerar ordem de serviço.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao criar ordem de produção.');
         this.isCarregando = false;
       }
     });
   }
 
-  trackEtapa(_: number, etapa: RoteiroEtapaUI): string {
-    return etapa.setor;
+  alterarQuantidade(ordem: OrderResponseDTO) {
+    const numeroOrdem = ordem.numeroOrdem;
+    const quantidade = numeroOrdem ? Number(this.quantidadeEdicao[numeroOrdem]) : 0;
+
+    if (!numeroOrdem || !Number.isInteger(quantidade) || quantidade < 1) {
+      this.mensagemFeedback = 'Informe uma quantidade válida para atualizar a ordem.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.orderService.alterarQuantidadeOrdem(numeroOrdem, quantidade).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Quantidade da ordem atualizada com sucesso.';
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar quantidade da ordem.');
+        this.isCarregando = false;
+      }
+    });
   }
 
-  private montarRoteiroPayload(): ProcessStepRequestDTO[] {
-    return this.roteiroEtapas
-      .filter((etapa) => etapa.ativa)
-      .map((etapa) => ({
-        nomeEtapa: etapa.nomeEtapa,
-        setor: etapa.setor,
-        maquinaIdealId: etapa.maquinaIdealId || null
-      }));
+  alterarPrioridade(ordem: OrderResponseDTO) {
+    const numeroOrdem = ordem.numeroOrdem;
+    const prioridade = numeroOrdem ? Number(this.prioridadeEdicao[numeroOrdem]) : 0;
+
+    if (!numeroOrdem || !this.prioridadeOptions.includes(prioridade)) {
+      this.mensagemFeedback = 'Escolha uma prioridade de 1 a 5.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.orderService.alterarPrioridadeOrdem(numeroOrdem, prioridade).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Prioridade da ordem atualizada com sucesso.';
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar prioridade.');
+        this.isCarregando = false;
+      }
+    });
   }
 
-  private criarRoteiroPadrao(): RoteiroEtapaUI[] {
-    return [
-      { sigla: 'CT', nomeEtapa: 'CORTE', setor: 'CORTE', maquinaIdealId: null, ativa: true },
-      { sigla: 'CL', nomeEtapa: 'CALDEIRARIA', setor: 'CALDEIRARIA', maquinaIdealId: null, ativa: true },
-      { sigla: 'US', nomeEtapa: 'USINAGEM', setor: 'USINAGEM', maquinaIdealId: null, ativa: true },
-      { sigla: 'AC', nomeEtapa: 'ACABAMENTO', setor: 'ACABAMENTO', maquinaIdealId: null, ativa: true },
-      { sigla: 'IN', nomeEtapa: 'INSPECAO', setor: 'INSPECAO', maquinaIdealId: null, ativa: true },
-      { sigla: 'EX', nomeEtapa: 'EXPEDICAO', setor: 'EXPEDICAO', maquinaIdealId: null, ativa: true }
-    ];
+  alterarStatusOrdem(ordem: OrderResponseDTO) {
+    const numeroOrdem = ordem.numeroOrdem;
+    const status = numeroOrdem ? this.statusOrdemEdicao[numeroOrdem] : '';
+
+    if (!numeroOrdem || !status) {
+      this.mensagemFeedback = 'Escolha um status para alterar a ordem.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.orderService.alterarStatusOrdem(numeroOrdem, status).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Status da ordem enviado ao back-end.';
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar status da ordem.');
+        this.isCarregando = false;
+      }
+    });
   }
 
-  private normalizarTextoMaiusculo(valor: string): string {
-    return this.converterTextoMaiusculo(valor).trim();
+  criarNovaSubOrdem(ordem: OrderResponseDTO) {
+    const numeroOrdem = ordem.numeroOrdem;
+    const letra = numeroOrdem ? this.normalizarLetra(this.letraNovaSubOrdem[numeroOrdem] || 'A') : '';
+
+    if (!numeroOrdem || !letra) {
+      this.mensagemFeedback = 'Informe a letra do subconjunto para criar a nova etapa.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.orderService.criarSubOrdem(numeroOrdem, letra).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Nova etapa criada com sucesso.';
+        this.letraNovaSubOrdem[numeroOrdem] = '';
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao criar nova etapa.');
+        this.isCarregando = false;
+      }
+    });
   }
 
-  private converterTextoMaiusculo(valor: string): string {
-    return (valor || '').toUpperCase();
+  alterarStatusSubOrdem(subOrdem: SubOrderResponseDTO) {
+    const codigoEtapa = subOrdem.codigoEtapa;
+    const status = codigoEtapa ? this.statusSubOrdemEdicao[codigoEtapa] : '';
+
+    if (!codigoEtapa || !status) {
+      this.mensagemFeedback = 'Escolha um status para alterar a etapa.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.orderService.alterarStatusSubOrdem(codigoEtapa, status).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Status da etapa enviado ao back-end.';
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao atualizar status da etapa.');
+        this.isCarregando = false;
+      }
+    });
+  }
+
+  excluirSubOrdem(codigoEtapa?: string) {
+    if (!codigoEtapa) return;
+
+    if (this.subOrdemExclusaoPendente !== codigoEtapa) {
+      this.subOrdemExclusaoPendente = codigoEtapa;
+      this.mensagemFeedback = 'Clique novamente em excluir etapa para confirmar.';
+      return;
+    }
+
+    this.isCarregando = true;
+    this.orderService.excluirSubOrdem(codigoEtapa).subscribe({
+      next: () => {
+        this.mensagemFeedback = 'Etapa excluída com sucesso.';
+        this.subOrdemExclusaoPendente = '';
+        this.carregarOrdens();
+        this.isCarregando = false;
+      },
+      error: (err) => {
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir etapa.');
+        this.subOrdemExclusaoPendente = '';
+        this.isCarregando = false;
+      }
+    });
   }
 
   excluirOrdem() {
@@ -254,10 +327,89 @@ export class OrderFormComponent implements OnInit {
         this.isCarregando = false;
       },
       error: (err) => {
-        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir ordem. Ela pode estar em produção.');
+        this.mensagemFeedback = apiErrorMessage(err, 'Erro ao excluir ordem. Ela pode já ter entrado em produção.');
         this.ordemExclusaoPendente = '';
         this.isCarregando = false;
       }
     });
+  }
+
+  trackSubconjunto(index: number): number {
+    return index;
+  }
+
+  trackOrdem(_: number, ordem: OrderResponseDTO): string {
+    return ordem.numeroOrdem || '';
+  }
+
+  trackSubOrdem(_: number, subOrdem: SubOrderResponseDTO): string {
+    return subOrdem.codigoEtapa || '';
+  }
+
+  progressoPercentual(item: OrderResponseDTO | SubOrderResponseDTO): number {
+    const total = item.quantidadeTotal || 0;
+    const produzida = item.quantidadeProduzida || 0;
+    if (total <= 0) return 0;
+
+    return Math.min(100, Math.round((produzida / total) * 100));
+  }
+
+  formatarData(data?: string): string {
+    if (!data) return '-';
+    return new Date(data).toLocaleString('pt-BR');
+  }
+
+  private montarSubconjuntosPayload(): NonNullable<OrderRequestDTO['subconjuntos']> {
+    return this.subconjuntos
+      .map((item) => ({
+        letra: this.normalizarLetra(item.letra),
+        quantidadeEtapas: this.quantidadeEtapasValida(item)
+      }))
+      .filter((item) => !!item.letra && item.quantidadeEtapas > 0);
+  }
+
+  private quantidadeEtapasValida(item: SubconjuntoUI): number {
+    const quantidade = Number(item.quantidadeEtapas);
+    return Number.isInteger(quantidade) && quantidade > 0 ? quantidade : 0;
+  }
+
+  private prepararCamposEdicao(ordens: OrderResponseDTO[]) {
+    ordens.forEach((ordem) => {
+      if (!ordem.numeroOrdem) return;
+
+      this.quantidadeEdicao[ordem.numeroOrdem] = ordem.quantidadeTotal || 1;
+      this.prioridadeEdicao[ordem.numeroOrdem] = ordem.prioridade || 5;
+      this.statusOrdemEdicao[ordem.numeroOrdem] = '';
+      this.letraNovaSubOrdem[ordem.numeroOrdem] ||= '';
+
+      (ordem.subOrdens || []).forEach((subOrdem) => {
+        if (subOrdem.codigoEtapa) {
+          this.statusSubOrdemEdicao[subOrdem.codigoEtapa] = '';
+        }
+      });
+    });
+  }
+
+  private proximaLetraDisponivel(): string {
+    const usadas = new Set(this.subconjuntos.map((item) => this.normalizarLetra(item.letra)));
+
+    for (let codigo = 65; codigo <= 90; codigo++) {
+      const letra = String.fromCharCode(codigo);
+      if (!usadas.has(letra)) return letra;
+    }
+
+    return 'A';
+  }
+
+  private normalizarLetra(valor: string): string {
+    return this.converterTextoMaiusculo(valor).replace(/[^A-Z]/g, '').slice(0, 1);
+  }
+
+  private normalizarTextoMaiusculo(valor: string): string {
+    return this.converterTextoMaiusculo(valor).trim();
+  }
+
+  private converterTextoMaiusculo(valor: string): string {
+    return (valor || '').toUpperCase();
   }
 }

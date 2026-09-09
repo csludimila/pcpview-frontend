@@ -1,177 +1,142 @@
 <div class="machine-page">
   <div class="machine-page-header">
-      <h2>Status dos Centros de Trabalho</h2>
+    <h2>Máquinas</h2>
 
-      <div class="add-machine-area" *ngIf="isAdmin">
-          <select class="sector-select" [(ngModel)]="novoCentroSetor" aria-label="Setor do novo centro">
-              <option *ngFor="let setor of setoresProcesso" [value]="setor">{{ textoSetor(setor) }}</option>
-          </select>
-          <input
-            type="text"
-            class="search-bar"
-            placeholder="NOME DO NOVO CENTRO"
-            [(ngModel)]="novaMaquinaNome"
-            (keyup.enter)="adicionarMaquina()">
-          <button class="btn btn-blue" (click)="adicionarMaquina()" [disabled]="isCarregando">
-              + Add
-          </button>
-      </div>
+    <div class="add-machine-area" *ngIf="isAdmin">
+      <input
+        type="text"
+        class="search-bar id-input"
+        placeholder="ID DA MÁQUINA"
+        [(ngModel)]="novaMaquinaId"
+        aria-label="ID da nova máquina">
+      <input
+        type="text"
+        class="search-bar"
+        placeholder="NOME DA MÁQUINA"
+        [(ngModel)]="novaMaquinaNome"
+        (keyup.enter)="adicionarMaquina()"
+        aria-label="Nome da nova máquina">
+      <button class="btn btn-blue" type="button" (click)="adicionarMaquina()" [disabled]="isCarregando">
+        Cadastrar
+      </button>
+    </div>
   </div>
 
-  <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-bottom: 20px;">
-      {{ mensagemFeedback }}
+  <div class="panel machine-search-panel">
+    <div class="machine-search-copy">
+      <h3>Buscar por ID</h3>
+      <span>{{ textoQuantidade(maquinas.length) }} cadastradas</span>
+    </div>
+    <div class="machine-search-form">
+      <input
+        type="text"
+        [(ngModel)]="buscaMaquinaId"
+        (keyup.enter)="buscarMaquinaPorId()"
+        placeholder="Ex: MAQ-001"
+        aria-label="Buscar máquina por ID">
+      <button type="button" class="btn btn-blue" (click)="buscarMaquinaPorId()" [disabled]="isCarregando">
+        Buscar
+      </button>
+    </div>
   </div>
 
-  <div *ngIf="itensSemMaquina.length > 0" class="panel sem-maquina-panel">
-      <div class="queue-panel-header">
-          <div>
-              <h3>Etapas sem centro definido</h3>
-              <span>{{ textoQuantidadeOF(itensSemMaquina.length) }} aguardando direcionamento</span>
-          </div>
-      </div>
-      <div class="queue-list">
-          <div class="queue-item" *ngFor="let item of itensSemMaquina">
-              <div>
-                  <strong>{{ item.codigoEtapa }}</strong>
-                  <span>{{ textoEtapaItem(item) }} · {{ textoProdutoItem(item) }}</span>
-                  <small>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</small>
-              </div>
-          </div>
-      </div>
+  <div *ngIf="maquinaEncontrada" class="panel found-machine-panel">
+    <strong>{{ maquinaEncontrada.nome }}</strong>
+    <span>ID: {{ maquinaEncontrada.id }} · {{ textoStatusMaquina(maquinaEncontrada) }}</span>
+  </div>
+
+  <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-bottom: 20px;" role="status" aria-live="polite">
+    {{ mensagemFeedback }}
   </div>
 
   <div *ngIf="maquinas.length === 0 && !isCarregando" class="empty-message">
-      Nenhum centro cadastrado. Adicione um acima.
+    Nenhuma máquina cadastrada.
   </div>
 
   <div *ngIf="isCarregando" class="empty-message" style="color: var(--accent);">
-      Comunicando com o servidor...
+    Comunicando com o servidor...
   </div>
 
-  <section class="sector-band" *ngFor="let setor of setoresVisiveis">
-      <div class="sector-title">
-          <h3>{{ textoSetor(setor) }}</h3>
-          <span>{{ maquinasPorSetor(setor).length }} centros</span>
-      </div>
+  <section class="sector-band">
+    <div class="sector-title">
+      <h3>Lista operacional</h3>
+      <span>{{ textoQuantidade(maquinas.length) }}</span>
+    </div>
 
-      <div class="machine-grid">
-          <div class="machine-card" *ngFor="let maq of maquinasPorSetor(setor)">
-              <div class="machine-title-row">
-                  <ng-container *ngIf="maquinaEdicaoId === maq.id; else tituloMaquina">
-                      <div class="machine-edit-area">
-                          <input
-                            type="text"
-                            class="machine-edit-input"
-                            [(ngModel)]="nomeMaquinaEditado"
-                            (keyup.enter)="salvarNomeMaquina(maq)"
-                            (keyup.escape)="cancelarEdicaoMaquina()">
-                          <div class="machine-edit-actions">
-                              <button type="button" class="icon-btn save-btn" title="Salvar nome" (click)="salvarNomeMaquina(maq)">✓</button>
-                              <button type="button" class="icon-btn cancel-btn" title="Cancelar edição" (click)="cancelarEdicaoMaquina()">×</button>
-                          </div>
-                      </div>
-                  </ng-container>
-                  <ng-template #tituloMaquina>
-                      <div>
-                          <h3>{{ maq.nome }}</h3>
-                          <span class="machine-sector-pill">{{ textoSetor(maq.setor) }}</span>
-                      </div>
-                  </ng-template>
-                  <span class="queue-counter">{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
-                  <div class="machine-card-actions" *ngIf="isAdmin">
-                      <button
-                        type="button"
-                        class="icon-btn edit-btn"
-                        title="Editar nome do centro"
-                        *ngIf="maquinaEdicaoId !== maq.id"
-                        (click)="iniciarEdicaoMaquina(maq)">
-                          ✎
-                      </button>
-                      <button
-                        type="button"
-                        class="icon-btn delete-btn"
-                        [class.confirming]="maquinaExclusaoPendente === maq.id"
-                        [title]="maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão' : 'Excluir centro'"
-                        (click)="excluirMaquina(maq.id)">
-                          {{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}
-                      </button>
-                  </div>
+    <div class="machine-grid">
+      <div class="machine-card" *ngFor="let maq of maquinas; trackBy: trackMaquina">
+        <div class="machine-title-row">
+          <ng-container *ngIf="maquinaEdicaoId === maq.id; else tituloMaquina">
+            <div class="machine-edit-area">
+              <input
+                type="text"
+                class="machine-edit-input"
+                [(ngModel)]="nomeMaquinaEditado"
+                (keyup.enter)="salvarNomeMaquina(maq)"
+                (keyup.escape)="cancelarEdicaoMaquina()"
+                aria-label="Novo nome da máquina">
+              <div class="machine-edit-actions">
+                <button type="button" class="icon-btn save-btn" title="Salvar nome" (click)="salvarNomeMaquina(maq)">✓</button>
+                <button type="button" class="icon-btn cancel-btn" title="Cancelar edição" (click)="cancelarEdicaoMaquina()">×</button>
               </div>
+            </div>
+          </ng-container>
+          <ng-template #tituloMaquina>
+            <div>
+              <h3>{{ maq.nome }}</h3>
+              <span class="machine-sector-pill">ID {{ maq.id }}</span>
+            </div>
+          </ng-template>
 
-              <div class="status-area">
-                  <span class="status-label">Status: </span>
-                  <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
-                  <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
-              </div>
-
-              <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)">
-                  <div>
-                      <span>OF em produção</span>
-                      <strong>{{ textoOFAtiva(maq) }}</strong>
-                  </div>
-                  <div>
-                      <span>Etapa</span>
-                      <strong>{{ textoEtapaAtiva(maq) }}</strong>
-                  </div>
-                  <div>
-                      <span>Operador</span>
-                      <strong>{{ textoOperadorAtivo(maq) }}</strong>
-                  </div>
-                  <div>
-                      <span>Quantidade</span>
-                      <strong>{{ textoQuantidadeAtiva(maq) }}</strong>
-                      <small>{{ textoRestanteAtivo(maq) }}</small>
-                  </div>
-              </div>
-
-              <button *ngIf="isAdmin" class="btn-toggle-status" (click)="alternarStatus(maq.id)">
-                  {{ maq.operacional ? 'Enviar para Manutenção' : 'Liberar Centro' }}
-              </button>
-
-              <div class="queue-section">
-                  <div class="queue-section-title">
-                      <h4>Fila de Produção</h4>
-                      <span>{{ textoQuantidadeOF(filaDaMaquina(maq.id).length) }}</span>
-                  </div>
-
-                  <div class="queue-list" *ngIf="filaDaMaquina(maq.id).length > 0; else filaVazia">
-                      <div
-                        class="queue-item"
-                        *ngFor="let item of filaDaMaquina(maq.id); let i = index"
-                        [class.dragging]="itemArrastado?.codigoEtapa === item.codigoEtapa"
-                        [attr.draggable]="isAdmin"
-                        (dragstart)="iniciarArraste(item)"
-                        (dragover)="permitirSoltar($event)"
-                        (drop)="soltarNaFila(maq.id, item)"
-                        (dragend)="finalizarArraste()">
-                          <div>
-                              <strong>{{ i + 1 }}. {{ item.codigoEtapa }}</strong>
-                              <span>{{ textoEtapaItem(item) }} · {{ textoProdutoItem(item) }}</span>
-                              <small>{{ item.quantidadeProduzida || 0 }} / {{ item.quantidadeTotal }} peças</small>
-                          </div>
-                          <button *ngIf="isAdmin" class="queue-remove-btn" title="Tirar da fila" (click)="removerDaFila(item.codigoEtapa)">×</button>
-                      </div>
-                  </div>
-
-                  <ng-template #filaVazia>
-                      <div class="queue-empty">Sem ordens na fila.</div>
-                  </ng-template>
-
-                  <div class="queue-add" *ngIf="isAdmin">
-                      <select [(ngModel)]="selecaoFilaPorMaquina[maq.id]" name="fila{{ maq.id }}">
-                          <option value="">-- ADICIONAR / MOVER ETAPA --</option>
-                          <option
-                            *ngFor="let item of itensDisponiveisParaMaquina(maq)"
-                            [value]="item.codigoEtapa">
-                              {{ item.codigoEtapa }} | {{ textoEtapaItem(item) }} | {{ item.maquinaIdealNome || 'Sem centro' }}
-                          </option>
-                      </select>
-                      <button class="btn btn-blue" (click)="adicionarNaFila(maq.id)" [disabled]="isCarregando">
-                          Adicionar
-                      </button>
-                  </div>
-              </div>
+          <div class="machine-card-actions" *ngIf="isAdmin">
+            <button
+              type="button"
+              class="icon-btn edit-btn"
+              title="Editar nome da máquina"
+              *ngIf="maquinaEdicaoId !== maq.id"
+              (click)="iniciarEdicaoMaquina(maq)">
+              ✎
+            </button>
+            <button
+              type="button"
+              class="icon-btn delete-btn"
+              [class.confirming]="maquinaExclusaoPendente === maq.id"
+              [title]="maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão' : 'Excluir máquina'"
+              (click)="excluirMaquina(maq.id)">
+              {{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}
+            </button>
           </div>
+        </div>
+
+        <div class="status-area">
+          <span class="status-label">Status: </span>
+          <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
+          <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
+        </div>
+
+        <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)">
+          <div>
+            <span>Execução</span>
+            <strong>{{ execucaoAtivaDaMaquina(maq)?.id }}</strong>
+          </div>
+          <div>
+            <span>Etapa</span>
+            <strong>{{ execucaoAtivaDaMaquina(maq)?.subOrdemId }}</strong>
+          </div>
+          <div>
+            <span>Operador</span>
+            <strong>{{ execucaoAtivaDaMaquina(maq)?.operadorNome }}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>{{ execucaoAtivaDaMaquina(maq)?.status }}</strong>
+          </div>
+        </div>
+
+        <button class="btn-toggle-status" type="button" (click)="alternarStatus(maq.id)" [disabled]="isCarregando">
+          {{ maq.operacional === false ? 'Liberar Máquina' : 'Marcar Indisponível' }}
+        </button>
       </div>
+    </div>
   </section>
 </div>

@@ -1,16 +1,19 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { 
   ExecutionStartRequestDTO, 
   ExecutionFinishRequestDTO, 
   ExecutionResponseDTO,
   OrderRequestDTO,
-  OrderResponseDTO
+  OrderResponseDTO,
+  SubOrderResponseDTO
 } from '../models/api.models';
 import { environment } from '../../environments/environment';
 
 const API_URL = environment.apiUrl;
+export type StatusProducao = 'AGUARDANDO' | 'EM_PROCESSAMENTO' | 'FINALIZADO' | 'CANCELADO';
+export type StatusExecucao = 'RODANDO' | 'FINALIZADA' | 'PAUSADA_POR_QUEBRA';
 
 @Injectable({
   providedIn: 'root'
@@ -24,17 +27,64 @@ export class ExecutionOrderService {
     return this.http.post<OrderResponseDTO>(`${API_URL}/ordens`, data);
   }
 
-  listarOrdens(): Observable<OrderResponseDTO[]> {
-    return this.http.get<OrderResponseDTO[]>(`${API_URL}/ordens`);
+  listarOrdens(status?: StatusProducao): Observable<OrderResponseDTO[]> {
+    const params = status ? new HttpParams().set('status', status) : undefined;
+    return this.http.get<OrderResponseDTO[]>(`${API_URL}/ordens`, { params });
   }
 
   excluirOrdem(numeroOrdem: string): Observable<void> {
     return this.http.delete<void>(`${API_URL}/ordens/${numeroOrdem}`);
   }
 
+  alterarStatusOrdem(numeroOrdem: string, status: StatusProducao): Observable<OrderResponseDTO> {
+    const params = new HttpParams().set('status', status);
+    return this.http.patch<OrderResponseDTO>(`${API_URL}/ordens/status/${numeroOrdem}`, null, { params });
+  }
+
+  alterarQuantidadeOrdem(numeroOrdem: string, quantidade: number): Observable<OrderResponseDTO> {
+    const params = new HttpParams().set('quantidade', quantidade);
+    return this.http.patch<OrderResponseDTO>(`${API_URL}/ordens/quantidade/${numeroOrdem}`, null, { params });
+  }
+
+  alterarPrioridadeOrdem(numeroOrdem: string, prioridade: number): Observable<OrderResponseDTO> {
+    const params = new HttpParams().set('prioridade', prioridade);
+    return this.http.patch<OrderResponseDTO>(`${API_URL}/ordens/prioridade/${numeroOrdem}`, null, { params });
+  }
+
+  criarSubOrdem(numeroOrdem: string, letra: string): Observable<SubOrderResponseDTO> {
+    const params = new HttpParams().set('letra', letra);
+    return this.http.post<SubOrderResponseDTO>(
+      `${API_URL}/sub-ordens/ordem/${numeroOrdem}`,
+      null,
+      { params }
+    );
+  }
+
+  listarSubOrdens(numeroOrdem: string): Observable<SubOrderResponseDTO[]> {
+    return this.http.get<SubOrderResponseDTO[]>(`${API_URL}/sub-ordens/ordem/${numeroOrdem}`);
+  }
+
+  alterarStatusSubOrdem(codigoEtapa: string, status: StatusProducao): Observable<SubOrderResponseDTO> {
+    const params = new HttpParams().set('status', status);
+    return this.http.patch<SubOrderResponseDTO>(
+      `${API_URL}/sub-ordens/status/${codigoEtapa}`,
+      null,
+      { params }
+    );
+  }
+
+  excluirSubOrdem(codigoEtapa: string): Observable<void> {
+    return this.http.delete<void>(`${API_URL}/sub-ordens/${codigoEtapa}`);
+  }
+
   // --- EXECUÇÕES ---
-  listarTodas(): Observable<ExecutionResponseDTO[]> {
-    return this.http.get<ExecutionResponseDTO[]>(`${API_URL}/execucoes`);
+  listarTodas(filtros: { status?: StatusExecucao; maquinaId?: string; ordemId?: string } = {}): Observable<ExecutionResponseDTO[]> {
+    let params = new HttpParams();
+    if (filtros.status) params = params.set('status', filtros.status);
+    if (filtros.maquinaId) params = params.set('maquinaId', filtros.maquinaId);
+    if (filtros.ordemId) params = params.set('ordemId', filtros.ordemId);
+
+    return this.http.get<ExecutionResponseDTO[]>(`${API_URL}/execucoes`, { params });
   }
 
   iniciar(data: ExecutionStartRequestDTO): Observable<ExecutionResponseDTO> {
@@ -42,30 +92,11 @@ export class ExecutionOrderService {
   }
 
   finalizar(data: ExecutionFinishRequestDTO): Observable<ExecutionResponseDTO> {
-    return this.http.put<ExecutionResponseDTO>(`${API_URL}/execucoes/finalizar`, data);
+    const params = new HttpParams().set('quantidadeProduzida', data.quantidadeProduzida);
+    return this.http.patch<ExecutionResponseDTO>(`${API_URL}/execucoes/finalizar/${data.idExecucao}`, null, { params });
   }
 
-  pausar(idExecucao: string): Observable<ExecutionResponseDTO> {
-    return this.http.patch<ExecutionResponseDTO>(`${API_URL}/execucoes/${idExecucao}/pausar`, {});
-  }
-
-  retomar(idExecucao: string): Observable<ExecutionResponseDTO> {
-    return this.http.patch<ExecutionResponseDTO>(`${API_URL}/execucoes/${idExecucao}/retomar`, {});
-  }
-
-  finalizarSetup(idExecucao: string): Observable<ExecutionResponseDTO> {
-    return this.http.patch<ExecutionResponseDTO>(`${API_URL}/execucoes/${idExecucao}/finalizar-setup`, {});
-  }
-
-  alterarMaquinaIdeal(codigoEtapa: string, maquinaIdealId: string): Observable<OrderResponseDTO> {
-    return this.http.patch<OrderResponseDTO>(`${API_URL}/ordens/subordens/${codigoEtapa}/fila`, { maquinaIdealId });
-  }
-
-  removerDaFila(codigoEtapa: string): Observable<OrderResponseDTO> {
-    return this.http.delete<OrderResponseDTO>(`${API_URL}/ordens/subordens/${codigoEtapa}/fila`);
-  }
-
-  reordenarFila(maquinaIdealId: string, codigosEtapa: string[]): Observable<void> {
-    return this.http.patch<void>(`${API_URL}/ordens/subordens/fila/reordenar`, { maquinaIdealId, codigosEtapa });
+  cancelar(idExecucao: string): Observable<void> {
+    return this.http.delete<void>(`${API_URL}/execucoes/${idExecucao}`);
   }
 }

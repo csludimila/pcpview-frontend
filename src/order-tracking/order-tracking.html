@@ -1,180 +1,163 @@
 <div class="container-tracking tracking-page">
+  <div class="tracking-summary">
+    <button class="summary-card" [class.active]="abaAtiva === 'aguardando'" (click)="mudarAba('aguardando')">
+      <strong>Aguardando</strong>
+    </button>
 
-    <div class="tracking-summary">
-        <button class="summary-card" [class.active]="abaAtiva === 'aguardando'" (click)="mudarAba('aguardando')">
-            <strong>Aguardando</strong>
-        </button>
+    <button class="summary-card production" [class.active]="abaAtiva === 'producao'" (click)="mudarAba('producao')">
+      <strong>Em Produção</strong>
+    </button>
 
-        <button class="summary-card production" [class.active]="abaAtiva === 'producao'" (click)="mudarAba('producao')">
-            <strong>Em Produção</strong>
-        </button>
+    <button class="summary-card done" [class.active]="abaAtiva === 'finalizadas'" (click)="mudarAba('finalizadas')">
+      <strong>Finalizadas</strong>
+    </button>
+  </div>
 
-        <button class="summary-card done" [class.active]="abaAtiva === 'finalizadas'" (click)="mudarAba('finalizadas')">
-            <strong>Finalizadas</strong>
-        </button>
+  <div class="tracking-search">
+    <input
+      type="search"
+      placeholder="PESQUISAR OF, ETAPA OU PRIORIDADE"
+      [(ngModel)]="termoPesquisa"
+      aria-label="Pesquisar ordem de produção">
+    <button type="button" class="btn btn-blue" *ngIf="temPesquisa()" (click)="termoPesquisa = ''">
+      Limpar
+    </button>
+  </div>
+
+  <div *ngIf="isCarregando" class="tracking-loading">
+    Sincronizando com a API...
+  </div>
+
+  <div *ngIf="mensagemFeedback && !isCarregando" class="alert-banner tracking-alert">
+    {{ mensagemFeedback }}
+  </div>
+
+  <div class="panel" *ngIf="abaAtiva === 'aguardando' && !isCarregando">
+    <div class="panel-header tracking-panel-title waiting">
+      Ordens Aguardando
     </div>
 
-    <div class="tracking-search">
-        <input
-          type="search"
-          placeholder="PESQUISAR OF, LOTE, PRODUTO OU ETAPA"
-          [(ngModel)]="termoPesquisa"
-          aria-label="Pesquisar ordem de fabricação">
-        <button type="button" class="btn btn-blue" *ngIf="temPesquisa()" (click)="termoPesquisa = ''">
-            Limpar
-        </button>
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>OF</th>
+            <th>PRIORIDADE</th>
+            <th>CRIADA EM</th>
+            <th>ETAPAS</th>
+            <th>QUANTIDADE</th>
+            <th>PROGRESSO</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="ordensAguardandoFiltradas.length === 0">
+            <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
+          </tr>
+          <tr *ngFor="let ordem of ordensAguardandoFiltradas; trackBy: trackOrdem">
+            <td class="lot-cell">
+              <strong>{{ ordem.numeroOrdem }}</strong>
+              <div class="mini-route">
+                <span *ngFor="let etapa of linhaProcesso(ordem); trackBy: trackSubOrdem" [class]="classeEtapaRoteiro(etapa)">
+                  {{ etapa.codigoEtapa }}
+                </span>
+              </div>
+            </td>
+            <td>{{ ordem.prioridade || 5 }}</td>
+            <td>{{ formatarData(ordem.dataCriacao) }}</td>
+            <td>{{ ordem.subOrdens?.length || 0 }}</td>
+            <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
+            <td>{{ progressoOrdem(ordem) }}%</td>
+            <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" *ngIf="abaAtiva === 'producao' && !isCarregando">
+    <div class="panel-header tracking-panel-title production">
+      Produção em Andamento
     </div>
 
-    <div *ngIf="isCarregando" class="tracking-loading">
-        A sincronizar com o banco de dados...
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>OF</th>
+            <th>ETAPA</th>
+            <th>MÁQUINA</th>
+            <th>OPERADOR</th>
+            <th>INÍCIO</th>
+            <th>QUANTIDADE</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="ordensProducaoFiltradas.length === 0">
+            <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
+          </tr>
+          <tr *ngFor="let ordem of ordensProducaoFiltradas; trackBy: trackOrdem">
+            <td class="lot-cell">
+              <strong>{{ ordem.numeroOrdem }}</strong>
+              <div class="mini-route">
+                <span *ngFor="let etapa of linhaProcesso(ordem); trackBy: trackSubOrdem" [class]="classeEtapaRoteiro(etapa)">
+                  {{ etapa.codigoEtapa }}
+                </span>
+              </div>
+            </td>
+            <td>{{ execucaoAtivaDaOrdem(ordem)?.subOrdemId || '-' }}</td>
+            <td class="text-blue">{{ execucaoAtivaDaOrdem(ordem)?.maquinaNome || '-' }}</td>
+            <td>{{ execucaoAtivaDaOrdem(ordem)?.operadorNome || '-' }}</td>
+            <td>{{ formatarData(execucaoAtivaDaOrdem(ordem)?.dataInicio) }}</td>
+            <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
+            <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" *ngIf="abaAtiva === 'finalizadas' && !isCarregando">
+    <div class="panel-header tracking-panel-title done">
+      Ordens Finalizadas
     </div>
 
-    <div *ngIf="mensagemFeedback && !isCarregando" class="alert-banner tracking-alert">
-        {{ mensagemFeedback }}
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>OF</th>
+            <th>CRIADA EM</th>
+            <th>ÚLTIMO APONTAMENTO</th>
+            <th>ETAPAS</th>
+            <th>QUANTIDADE</th>
+            <th>PROGRESSO</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="ordensFinalizadasFiltradas.length === 0">
+            <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
+          </tr>
+          <tr *ngFor="let ordem of ordensFinalizadasFiltradas; trackBy: trackOrdem">
+            <td class="lot-cell">
+              <strong>{{ ordem.numeroOrdem }}</strong>
+              <div class="mini-route">
+                <span *ngFor="let etapa of linhaProcesso(ordem); trackBy: trackSubOrdem" [class]="classeEtapaRoteiro(etapa)">
+                  {{ etapa.codigoEtapa }}
+                </span>
+              </div>
+            </td>
+            <td>{{ formatarData(ordem.dataCriacao) }}</td>
+            <td>{{ formatarData(execucaoFinalDaOrdem(ordem)?.dataFim) }}</td>
+            <td>{{ ordem.subOrdens?.length || 0 }}</td>
+            <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
+            <td>{{ progressoOrdem(ordem) }}%</td>
+            <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-
-    <div class="panel" *ngIf="abaAtiva === 'aguardando' && !isCarregando">
-        <div class="panel-header tracking-panel-title waiting">
-            Ordens Aguardando Início
-        </div>
-
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Nº ORDEM / LOTE</th>
-                        <th>PRODUTO</th>
-                        <th>ETAPA / SETOR</th>
-                        <th>CENTRO IDEAL</th>
-                        <th>FILA</th>
-                        <th>QUANTIDADE</th>
-                        <th>STATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngIf="ordensAguardandoFiltradas.length === 0">
-                        <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
-                    </tr>
-                    <tr *ngFor="let ordem of ordensAguardandoFiltradas">
-                        <td class="lot-cell">
-                            <strong>{{ codigoLote(ordem) }}</strong>
-                            <div class="mini-route">
-                                <span *ngFor="let etapa of linhaProcesso(ordem)" [class]="classeEtapaRoteiro(etapa)">
-                                    {{ etapa.nomeEtapa || etapa.setor }}
-                                </span>
-                            </div>
-                        </td>
-                        <td>{{ produtoOrdem(ordem) }}</td>
-                        <td>{{ etapaAtual(ordem) }}</td>
-                        <td class="text-blue">{{ maquinaIdeal(ordem) }}</td>
-                        <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
-                        <td class="quantity-cell">{{ quantidadeEtapa(ordem) }}</td>
-                        <td><span class="status-badge status-aguardando">AGUARDANDO</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="panel" *ngIf="abaAtiva === 'producao' && !isCarregando">
-        <div class="panel-header tracking-panel-title production">
-            Produção em Andamento
-        </div>
-
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Nº ORDEM / LOTE</th>
-                        <th>PRODUTO</th>
-                        <th>ETAPA / SETOR</th>
-                        <th>CENTRO</th>
-                        <th>OPERADOR</th>
-                        <th>FILA</th>
-                        <th>QUANTIDADE</th>
-                        <th>INÍCIO</th>
-                        <th>TEMPO</th>
-                        <th>STATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngIf="ordensProducaoFiltradas.length === 0">
-                        <td colspan="10" class="empty-cell">Nenhuma ordem encontrada.</td>
-                    </tr>
-                    <tr *ngFor="let ordem of ordensProducaoFiltradas">
-                        <td class="lot-cell">
-                            <strong>{{ codigoLote(ordem) }}</strong>
-                            <div class="mini-route">
-                                <span *ngFor="let etapa of linhaProcesso(ordem)" [class]="classeEtapaRoteiro(etapa)">
-                                    {{ etapa.nomeEtapa || etapa.setor }}
-                                </span>
-                            </div>
-                        </td>
-                        <td>{{ produtoOrdem(ordem) }}</td>
-                        <td>{{ etapaAtual(ordem) }}</td>
-                        <td class="text-blue">{{ maquinaProducao(ordem) }}</td>
-                        <td>{{ operadorProducao(ordem) }}</td>
-                        <td><span [class]="classeFila(ordem)">{{ posicaoFila(ordem) }}</span></td>
-                        <td class="quantity-cell">{{ quantidadeEtapa(ordem) }}</td>
-                        <td>{{ formatarData(ordem.dataInicio) }}</td>
-                        <td>{{ formatarDuracao(ordem.tempoProdutivoSegundos) }}</td>
-                        <td><span [class]="classeStatusProducao(ordem)">{{ textoStatusProducao(ordem) }}</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="panel" *ngIf="abaAtiva === 'finalizadas' && !isCarregando">
-        <div class="panel-header tracking-panel-title done">
-            Serviços Finalizados
-        </div>
-
-        <div class="data-table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Nº ORDEM / LOTE</th>
-                        <th>PRODUTO</th>
-                        <th>PROCESSO</th>
-                        <th>QUANTIDADE</th>
-                        <th>INÍCIO</th>
-                        <th>FIM</th>
-                        <th>TOTAL PROD.</th>
-                        <th>SETUP 1ª PEÇA</th>
-                        <th>RESTANTE LOTE</th>
-                        <th>MÉDIA/PEÇA</th>
-                        <th>MÉDIA RESTANTE</th>
-                        <th>STATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngIf="ordensFinalizadasFiltradas.length === 0">
-                        <td colspan="12" class="empty-cell">Nenhum serviço encontrado.</td>
-                    </tr>
-                    <tr *ngFor="let ordem of ordensFinalizadasFiltradas">
-                        <td class="lot-cell">{{ codigoFinalizado(ordem) }}</td>
-                        <td>{{ produtoOrdem(ordem) }}</td>
-                        <td>
-                            <div class="mini-route">
-                                <span *ngFor="let etapa of linhaProcesso(ordem)" [class]="classeEtapaRoteiro(etapa)">
-                                    {{ etapa.nomeEtapa || etapa.setor }}
-                                </span>
-                            </div>
-                        </td>
-                        <td class="quantity-cell">{{ ordem.quantidadeProduzida || 0 }} / {{ ordem.quantidadeTotal }}</td>
-                        <td>{{ formatarData(ordem.dataInicio) }}</td>
-                        <td>{{ formatarData(ordem.dataFim) }}</td>
-                        <td>{{ formatarDuracao(ordem.tempoProdutivoSegundos) }}</td>
-                        <td class="setup-cell">{{ formatarDuracao(ordem.tempoSetupSegundos) }}</td>
-                        <td>{{ formatarDuracao(ordem.tempoRestanteLoteSegundos) }}</td>
-                        <td>{{ formatarDuracao(ordem.tempoMedioPorPecaSegundos) }}</td>
-                        <td>{{ formatarDuracao(ordem.tempoMedioRestanteSegundos) }}</td>
-                        <td><span class="status-badge status-finalizado">FINALIZADO</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
+  </div>
 </div>

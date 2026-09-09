@@ -17,23 +17,20 @@ describe('MachineListComponent', () => {
   beforeEach(async () => {
     machineServiceSpy = jasmine.createSpyObj('MachineService', [
       'buscarTodasMaquinas',
+      'buscarMaquinaPorId',
       'alterarNome',
       'deletarMaquina',
       'registrarMaquina',
       'alternarStatusOperacional'
     ]);
-    executionOrderServiceSpy = jasmine.createSpyObj('ExecutionOrderService', [
-      'listarOrdens',
-      'listarTodas',
-      'alterarMaquinaIdeal',
-      'removerDaFila',
-      'reordenarFila'
-    ]);
+    executionOrderServiceSpy = jasmine.createSpyObj('ExecutionOrderService', ['listarTodas']);
     authServiceSpy = jasmine.createSpyObj('AuthService', ['isAdmin']);
 
     machineServiceSpy.buscarTodasMaquinas.and.returnValue(of([]));
-    machineServiceSpy.alterarNome.and.returnValue(of({ id: 'M-01', nome: 'TORNO CNC' }));
-    executionOrderServiceSpy.listarOrdens.and.returnValue(of([]));
+    machineServiceSpy.buscarMaquinaPorId.and.returnValue(of({ id: 'M-01', nome: 'TORNO CNC', operacional: true }));
+    machineServiceSpy.alterarNome.and.returnValue(of({ id: 'M-01', nome: 'TORNO CNC', operacional: true }));
+    machineServiceSpy.registrarMaquina.and.returnValue(of({ id: 'M-02', nome: 'FRESA', operacional: true }));
+    machineServiceSpy.alternarStatusOperacional.and.returnValue(of({ id: 'M-01', nome: 'TORNO CNC', operacional: false }));
     executionOrderServiceSpy.listarTodas.and.returnValue(of([]));
     authServiceSpy.isAdmin.and.returnValue(false);
 
@@ -64,6 +61,24 @@ describe('MachineListComponent', () => {
     expect(authServiceSpy.isAdmin).toHaveBeenCalled();
   });
 
+  it('deve cadastrar maquina com ID e nome em uppercase', () => {
+    component.novaMaquinaId = 'm-02';
+    component.novaMaquinaNome = 'fresa';
+
+    component.adicionarMaquina();
+
+    expect(machineServiceSpy.registrarMaquina).toHaveBeenCalledWith({ id: 'M-02', nome: 'FRESA' });
+  });
+
+  it('deve buscar maquina por ID', () => {
+    component.buscaMaquinaId = 'm-01';
+
+    component.buscarMaquinaPorId();
+
+    expect(machineServiceSpy.buscarMaquinaPorId).toHaveBeenCalledWith('M-01');
+    expect(component.maquinaEncontrada?.nome).toBe('TORNO CNC');
+  });
+
   it('deve editar nome da maquina em uppercase', () => {
     component.iniciarEdicaoMaquina({ id: 'M-01', nome: 'Torno antigo' });
     component.nomeMaquinaEditado = 'torno cnc';
@@ -74,70 +89,23 @@ describe('MachineListComponent', () => {
     expect(component.maquinaEdicaoId).toBe('');
   });
 
-  it('deve mostrar OF e operador ativos no card da maquina', () => {
+  it('deve alternar status operacional', () => {
+    component.alternarStatus('M-01');
+
+    expect(machineServiceSpy.alternarStatusOperacional).toHaveBeenCalledWith('M-01');
+  });
+
+  it('deve associar execucao ativa pelo nome da maquina quando o backend nao retorna maquinaId', () => {
     component.execucoesAbertas = [
       {
         id: 'exec-1',
-        maquinaId: 'M-01',
         maquinaNome: 'TORNO CNC',
         subOrdemId: 'OF-100-A-01',
-        operadorNome: 'OPERADOR TESTE',
+        operadorNome: 'operador@pcpview.local',
         status: 'RODANDO'
       }
     ];
 
-    expect(component.textoOFAtiva({ id: 'M-01', nome: 'TORNO CNC' })).toBe('OF-100-A-01');
-    expect(component.textoOperadorAtivo({ id: 'M-01', nome: 'TORNO CNC' })).toBe('OPERADOR TESTE');
-  });
-
-  it('deve mostrar quantidade feita, total e restante da OF ativa', () => {
-    component.execucoesAbertas = [
-      {
-        id: 'exec-1',
-        maquinaId: 'M-01',
-        subOrdemId: 'OF-200-A-01',
-        operadorNome: 'OPERADOR TESTE',
-        status: 'RODANDO'
-      }
-    ];
-    component.ordens = [
-      {
-        numeroOrdem: 'OF-200',
-        quantidadeTotal: 10,
-        quantidadeProduzida: 4,
-        status: 'EM_PROCESSAMENTO',
-        subOrdens: [
-          {
-            codigoEtapa: 'OF-200-A-01',
-            quantidadeTotal: 10,
-            quantidadeProduzida: 4,
-            status: 'EM_PROCESSAMENTO',
-            maquinaIdealId: 'M-01'
-          }
-        ]
-      }
-    ];
-
-    expect(component.textoQuantidadeAtiva({ id: 'M-01', nome: 'TORNO CNC' })).toBe('4 / 10 feitas');
-    expect(component.textoRestanteAtivo({ id: 'M-01', nome: 'TORNO CNC' })).toBe('Restam 6');
-  });
-
-  it('deve usar saldo direto da execucao ativa quando ordens ainda nao carregaram', () => {
-    component.execucoesAbertas = [
-      {
-        id: 'exec-1',
-        maquinaId: 'M-01',
-        subOrdemId: 'OF-300-A-01',
-        operadorNome: 'OPERADOR TESTE',
-        status: 'RODANDO',
-        quantidadeTotal: 12,
-        quantidadeProduzida: 5,
-        quantidadeRestante: 7
-      }
-    ];
-    component.ordens = [];
-
-    expect(component.textoQuantidadeAtiva({ id: 'M-01', nome: 'TORNO CNC' })).toBe('5 / 12 feitas');
-    expect(component.textoRestanteAtivo({ id: 'M-01', nome: 'TORNO CNC' })).toBe('Restam 7');
+    expect(component.execucaoAtivaDaMaquina({ id: 'M-01', nome: 'TORNO CNC' })?.id).toBe('exec-1');
   });
 });

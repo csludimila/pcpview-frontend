@@ -5,16 +5,8 @@
                 <span class="register-icon">US</span>
                 <div>
                     <h3>Cadastrar Usuário</h3>
-                    <p>Controle de acesso administrativo e operacional</p>
+                    <p>Novos cadastros entram como operador</p>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label for="register-role">TIPO DE ACESSO</label>
-                <select id="register-role" [(ngModel)]="novoUsuario.role">
-                    <option value="USER">OPERADOR</option>
-                    <option value="ADMIN">ADMINISTRADOR</option>
-                </select>
             </div>
 
             <div class="form-group">
@@ -32,9 +24,9 @@
 
             <div class="form-group">
                 <label for="register-password">SENHA</label>
-                <input id="register-password" type="password" [(ngModel)]="novoUsuario.password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+                <input id="register-password" type="password" [(ngModel)]="novoUsuario.password" placeholder="Senha inicial" autocomplete="new-password">
                 <div *ngIf="novoUsuario.password && !senhaValida" class="field-warning" role="alert">
-                    A senha deve ter pelo menos 8 caracteres.
+                    Informe uma senha.
                 </div>
             </div>
 
@@ -60,8 +52,8 @@
                 <div class="user-row" *ngFor="let usuario of usuarios">
                     <div class="user-main">
                         <div>
-                            <strong>{{ usuario.userName || '-' }}</strong>
-                            <span>{{ usuario.email || '-' }}</span>
+                            <strong>{{ loginUsuario(usuario) }}</strong>
+                            <span>ID: {{ usuario.id || '-' }}</span>
                         </div>
                         <span class="status-badge" [ngClass]="usuario.role === 'ADMIN' ? 'status-producao' : 'status-aguardando'">
                             {{ textoPerfil(usuario.role) }}
@@ -69,37 +61,20 @@
                     </div>
 
                     <div class="user-actions">
-                        <button type="button" class="btn btn-small btn-outline" (click)="iniciarRedefinicaoSenha(usuario)">
-                            Redefinir senha
+                        <button
+                            type="button"
+                            class="btn btn-small btn-blue"
+                            (click)="promoverParaAdmin(usuario)"
+                            [disabled]="usuario.role === 'ADMIN' || isCarregando">
+                            Promover admin
                         </button>
-                    </div>
-
-                    <div *ngIf="usuarioResetSenhaId === usuario.id" class="reset-password-box">
-                        <div class="form-group reset-password-field">
-                            <label [for]="'reset-password-' + usuario.id">NOVA SENHA</label>
-                            <input
-                                [id]="'reset-password-' + usuario.id"
-                                type="password"
-                                [(ngModel)]="senhasReset[usuario.id || '']"
-                                placeholder="Mínimo 8 caracteres"
-                                autocomplete="new-password">
-                            <div *ngIf="senhasReset[usuario.id || ''] && !senhaResetValida(usuario.id)" class="field-warning" role="alert">
-                                A senha deve ter pelo menos 8 caracteres.
-                            </div>
-                        </div>
-
-                        <div class="reset-password-actions">
-                            <button
-                                type="button"
-                                class="btn btn-small btn-blue"
-                                (click)="redefinirSenha(usuario)"
-                                [disabled]="!senhaResetValida(usuario.id) || resetSenhaCarregandoId === usuario.id">
-                                {{ resetSenhaCarregandoId === usuario.id ? 'Salvando...' : 'Confirmar' }}
-                            </button>
-                            <button type="button" class="btn btn-small btn-outline" (click)="cancelarRedefinicaoSenha()">
-                                Cancelar
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-small btn-red"
+                            (click)="desativarUsuario(usuario)"
+                            [disabled]="isCarregando">
+                            {{ usuarioDesativacaoPendenteId === usuario.id ? 'Confirmar' : 'Desativar' }}
+                        </button>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ProductRequestDTO, ProductResponseDTO, UpdateProductNameDTO } from '../models/api.models';
@@ -22,7 +22,8 @@ export class ProductService {
   }
 
   atualizarNomeProduto(id: string, data: UpdateProductNameDTO): Observable<ProductResponseDTO> {
-    return this.http.patch<ProductResponseDTO>(`${this.apiUrl}/updateName/${id}`, data);
+    const params = new HttpParams().set('nome', data.nome);
+    return this.http.patch<ProductResponseDTO>(`${this.apiUrl}/updateName/${id}`, null, { params });
   }
 
   deletarProduto(id: string): Observable<void> {

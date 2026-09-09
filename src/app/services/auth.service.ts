@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { RegisterRequestDTO, ResetPasswordRequestDTO, UserResponseDTO } from '../models/api.models';
+import { RegisterRequestDTO, UserResponseDTO } from '../models/api.models';
 
 export interface LoginRequestDTO {
   email: string;
@@ -11,8 +11,6 @@ export interface LoginRequestDTO {
 
 export interface LoginResponseDTO {
   token: string;
-  refreshToken?: string;
-  expiresAt?: string;
 }
 
 @Injectable({
@@ -27,59 +25,60 @@ export class AuthService {
 
   login(credentials: LoginRequestDTO): Observable<LoginResponseDTO> {
     return this.http.post<LoginResponseDTO>(`${this.apiUrl}/login`, credentials).pipe(
-      tap(response => {
-        if (response && response.token) {
-          this.setSession(response.token, credentials.email, response.refreshToken, response.expiresAt);
+      switchMap(response => {
+        if (!response?.token) {
+          return of(response);
         }
+
+        this.setSession(response.token, credentials.email);
+
+        return this.listarUsuarios().pipe(
+          tap((usuarios) => this.marcarPerfilAutenticado(credentials.email, usuarios)),
+          map(() => response),
+          catchError(() => of(response))
+        );
       })
     );
   }
 
   renovarSessao(): Observable<LoginResponseDTO> {
-    const refreshToken = this.getRefreshToken();
-    return this.http.post<LoginResponseDTO>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
-      tap(response => {
-        if (response && response.token) {
-          this.setSession(
-            response.token,
-            this.getUserEmail() || '',
-            response.refreshToken,
-            response.expiresAt
-          );
-        }
-      })
-    );
+    return of({ token: this.getToken() || '' });
   }
 
   revogarSessao(): Observable<void> {
-    const refreshToken = this.getRefreshToken();
-    return this.http.post<void>(`${this.apiUrl}/logout`, { refreshToken });
+    return of(void 0);
   }
 
   registrar(usuario: RegisterRequestDTO): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}`, usuario);
+    const payload = {
+      userName: usuario.userName,
+      email: usuario.email,
+      password: usuario.password
+    };
+
+    return this.http.post<void>(`${this.apiUrl}`, payload);
   }
 
   listarUsuarios(): Observable<UserResponseDTO[]> {
-    return this.http.get<UserResponseDTO[]>(`${this.apiUrl}/users`);
+    return this.http.get<UserResponseDTO[]>(this.apiUrl);
   }
 
-  redefinirSenha(userId: string, body: ResetPasswordRequestDTO): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/users/${userId}/password`, body);
+  promoverParaAdmin(userId: string): Observable<UserResponseDTO> {
+    return this.http.patch<UserResponseDTO>(`${this.apiUrl}/${userId}/promote`, {});
   }
 
-  private setSession(token: string, email: string, refreshToken?: string, expiresAt?: string) {
+  desativarUsuario(userId: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${userId}/desativar`, {});
+  }
+
+  private setSession(token: string, email: string, role?: string) {
     localStorage.setItem('token', token);
     localStorage.setItem('userEmail', email);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
-    if (expiresAt) {
-      localStorage.setItem('accessTokenExpiresAt', expiresAt);
-    }
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('accessTokenExpiresAt');
     
-    const role = this.decodificarRole(token) || 'USER';
-    localStorage.setItem('userRole', role);
+    const perfil = role || this.decodificarRole(token) || 'USER';
+    localStorage.setItem('userRole', perfil);
   }
 
   logout() {
@@ -92,10 +91,6 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem('token');
-  }
-
-  getRefreshToken(): string | null {
-    return localStorage.getItem('refreshToken');
   }
 
   getUserEmail(): string | null {
@@ -118,7 +113,7 @@ export class AuthService {
     const token = this.getToken();
     if (!token) return false;
 
-    if (this.tokenExpirado(token) && !this.getRefreshToken()) {
+    if (this.tokenExpirado(token)) {
       this.logout();
       return false;
     }
@@ -127,8 +122,7 @@ export class AuthService {
   }
 
   deveRenovarToken(): boolean {
-    const token = this.getToken();
-    return !!token && this.tokenExpirado(token) && !!this.getRefreshToken();
+    return false;
   }
 
   private decodificarRole(token: string): string {
@@ -138,6 +132,18 @@ export class AuthService {
     } catch(e) {}
 
     return '';
+  }
+
+  private marcarPerfilAutenticado(email: string, usuarios: UserResponseDTO[]) {
+    const emailNormalizado = email.trim().toLowerCase();
+    const usuario = usuarios.find((item) => this.loginUsuario(item).toLowerCase() === emailNormalizado);
+
+    localStorage.setItem('userRole', usuario?.role || 'ADMIN');
+    localStorage.setItem('userEmail', usuario ? this.loginUsuario(usuario) : emailNormalizado);
+  }
+
+  private loginUsuario(usuario: UserResponseDTO): string {
+    return usuario.login || '';
   }
 
   private tokenExpirado(token: string): boolean {

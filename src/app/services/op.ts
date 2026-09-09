@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
@@ -32,10 +32,7 @@ export class OpService {
   }
 
   finalizarExecucao(idExecucao: string, qtdProduzida: number): Observable<ExecutionResponseDTO> {
-    const body = {
-      idExecucao: idExecucao,
-      quantidadeProduzida: qtdProduzida
-    };
-    return this.http.put<ExecutionResponseDTO>(`${this.API_EXECUCOES}/finalizar`, body);
+    const params = new HttpParams().set('quantidadeProduzida', qtdProduzida);
+    return this.http.patch<ExecutionResponseDTO>(`${this.API_EXECUCOES}/finalizar/${idExecucao}`, null, { params });
   }
 }

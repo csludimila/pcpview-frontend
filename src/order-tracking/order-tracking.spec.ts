@@ -30,40 +30,56 @@ describe('OrderTrackingComponent', () => {
     fixture.detectChanges();
   });
 
-  it('deve mostrar maquina real, operador e status pausado da execucao ativa', () => {
-    component.execucoesAbertas = [
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('deve classificar ordem em producao quando existe execucao rodando', () => {
+    component.execucoes = [
       {
         id: 'exec-1',
-        maquinaId: 'M-02',
         maquinaNome: 'MANDRILHADORA',
         subOrdemId: 'OF-100-A-01',
         operadorNome: 'operador@pcpview.local',
-        status: 'PAUSADA_POR_QUEBRA'
+        status: 'RODANDO'
       }
     ];
 
     const ordem = {
       numeroOrdem: 'OF-100',
-      produtoNome: 'Eixo Guia',
       quantidadeTotal: 10,
       quantidadeProduzida: 3,
-      status: 'EM_PROCESSAMENTO' as const,
+      prioridade: 2,
       subOrdens: [
         {
           codigoEtapa: 'OF-100-A-01',
           quantidadeTotal: 10,
-          quantidadeProduzida: 3,
-          status: 'EM_PROCESSAMENTO' as const,
-          maquinaIdealId: 'M-01',
-          maquinaIdealNome: 'TORNO CNC',
-          posicaoFila: 1
+          quantidadeProduzida: 3
         }
       ]
     };
 
-    expect(component.maquinaProducao(ordem)).toBe('MANDRILHADORA');
-    expect(component.operadorProducao(ordem)).toBe('operador@pcpview.local');
-    expect(component.textoStatusProducao(ordem)).toBe('PAUSADA');
-    expect(component.classeStatusProducao(ordem)).toContain('status-pausado');
+    expect(component.execucaoAtivaDaOrdem(ordem)?.maquinaNome).toBe('MANDRILHADORA');
+    expect(component.textoStatusOrdem(ordem)).toBe('EM PRODUÇÃO');
+    expect(component.classeStatusOrdem(ordem)).toContain('status-producao');
+  });
+
+  it('deve classificar ordem finalizada pela quantidade produzida', () => {
+    const ordem = {
+      numeroOrdem: 'OF-200',
+      quantidadeTotal: 5,
+      quantidadeProduzida: 5,
+      prioridade: 1,
+      subOrdens: [
+        {
+          codigoEtapa: 'OF-200-A-01',
+          quantidadeTotal: 5,
+          quantidadeProduzida: 5
+        }
+      ]
+    };
+
+    expect(component.textoStatusOrdem(ordem)).toBe('FINALIZADA');
+    expect(component.progressoOrdem(ordem)).toBe(100);
   });
 });

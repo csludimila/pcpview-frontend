@@ -39,7 +39,10 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = apiErrorMessage(err, 'Credenciais inválidas. Verifique o login e a senha.');
+        const mensagem = apiErrorMessage(err, 'Credenciais inválidas. Verifique o login e a senha.');
+        this.errorMessage = mensagem.includes('UserDetailsService returned null')
+          ? 'Credenciais inválidas. Verifique o login e a senha.'
+          : mensagem;
       }
     });
   }

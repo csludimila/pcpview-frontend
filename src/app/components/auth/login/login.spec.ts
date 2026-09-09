@@ -34,7 +34,7 @@ describe('LoginComponent', () => {
   });
 
   it('redireciona administrador para planejamento', () => {
-    authServiceSpy.login.and.returnValue(of({ token: 'token-admin', refreshToken: 'refresh-admin' }));
+    authServiceSpy.login.and.returnValue(of({ token: 'token-admin' }));
     authServiceSpy.getRole.and.returnValue('ADMIN');
     spyOn(router, 'navigate');
 
@@ -46,7 +46,7 @@ describe('LoginComponent', () => {
   });
 
   it('redireciona operador para operacao', () => {
-    authServiceSpy.login.and.returnValue(of({ token: 'token-operador', refreshToken: 'refresh-operador' }));
+    authServiceSpy.login.and.returnValue(of({ token: 'token-operador' }));
     authServiceSpy.getRole.and.returnValue('USER');
     spyOn(router, 'navigate');
 
