@@ -6,7 +6,7 @@
 
 .tracking-summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     margin: 24px 0;
 }
@@ -35,6 +35,10 @@
 
 .summary-card.done strong {
     color: var(--status-start);
+}
+
+.summary-card.canceled strong {
+    color: var(--status-maintenance);
 }
 
 .summary-card.active {
@@ -86,6 +90,16 @@
 
 .tracking-panel-title.done {
     color: var(--status-start);
+}
+
+.tracking-panel-title.canceled {
+    color: var(--status-maintenance);
+}
+
+.status-cancelado {
+    background: rgba(220, 53, 69, 0.12);
+    border: 1px solid rgba(220, 53, 69, 0.4);
+    color: var(--status-maintenance);
 }
 
 .empty-cell {
@@ -170,6 +184,12 @@
     color: var(--status-pause);
     border-color: rgba(255, 140, 0, 0.34);
     background: rgba(255, 140, 0, 0.08);
+}
+
+.route-chip.canceled {
+    color: var(--status-maintenance);
+    border-color: rgba(220, 53, 69, 0.4);
+    background: rgba(220, 53, 69, 0.1);
 }
 
 .route-chip.locked {

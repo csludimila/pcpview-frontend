@@ -138,6 +138,14 @@
             <span>Etapas</span>
             <strong>{{ ordem.subOrdens?.length || 0 }}</strong>
           </div>
+          <div>
+            <span>Status</span>
+            <strong>
+              <span class="status-badge" [ngClass]="classeStatusProducao(ordem.status)">
+                {{ textoStatusProducao(ordem.status) }}
+              </span>
+            </strong>
+          </div>
         </div>
 
         <div class="order-actions-grid">
@@ -184,6 +192,9 @@
             <div>
               <strong>{{ subOrdem.codigoEtapa }}</strong>
               <span>{{ subOrdem.quantidadeProduzida || 0 }} / {{ subOrdem.quantidadeTotal || 0 }} peças</span>
+              <span class="status-badge suborder-status" [ngClass]="classeStatusProducao(subOrdem.status)">
+                {{ textoStatusProducao(subOrdem.status) }}
+              </span>
             </div>
             <div class="suborder-actions">
               <select [(ngModel)]="statusSubOrdemEdicao[subOrdem.codigoEtapa || '']" [name]="'statusSub' + subOrdem.codigoEtapa" [attr.aria-label]="'Alterar status da etapa ' + subOrdem.codigoEtapa">

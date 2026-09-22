@@ -37,7 +37,7 @@
         <label for="op-execution">EXECUÇÃO EM ANDAMENTO</label>
         <select id="op-execution" formControlName="idExecucao">
           <option value="">-- SELECIONE SE JÁ ESTIVER RODANDO --</option>
-          <option *ngFor="let execucao of execucoesRodando" [value]="execucao.id">
+          <option *ngFor="let execucao of execucoesEmAndamento" [value]="execucao.id">
             {{ textoOpcaoExecucao(execucao) }}
           </option>
         </select>

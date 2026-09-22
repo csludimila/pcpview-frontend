@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,15 +13,13 @@ import { apiErrorMessage } from '../../../shared/api-error';
   styleUrls: ['./login.css']
 })
 export class LoginComponent {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
   email = '';
   password = '';
-  errorMessage = '';
   isLoading = false;
-
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  errorMessage = '';
 
   onSubmit(): void {
     if (!this.email || !this.password) {
@@ -29,25 +27,19 @@ export class LoginComponent {
       return;
     }
 
-    this.errorMessage = '';
     this.isLoading = true;
+    this.errorMessage = '';
 
     this.authService.login({ email: this.email, password: this.password }).subscribe({
-      next: (res: any) => {
+      next: () => {
         this.isLoading = false;
-        this.authService.setToken(res.token);
-        this.router.navigate(['/escritorio']);
+        const role = this.authService.getRole();
+        this.router.navigate([role === 'ADMIN' ? '/planejamento' : '/operacao']);
       },
-      error: (err: any) => {
+      error: (err) => {
         this.isLoading = false;
-        this.errorMessage = apiErrorMessage(err, 'Falha na autenticação. Verifique e-mail e senha.');
-        console.error('Erro no login:', err);
+        this.errorMessage = apiErrorMessage(err, 'Credenciais inválidas. Verifique o login e a senha.');
       }
     });
-  }
-
-  // Mantido por compatibilidade caso outro local use onLogin
-  onLogin(): void {
-    this.onSubmit();
   }
 }

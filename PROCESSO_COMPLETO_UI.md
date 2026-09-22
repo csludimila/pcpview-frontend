@@ -10,14 +10,12 @@ Este front foi alinhado ao back-end oficial de Carlos-DMS/PCPView. A tela atual 
 - Produtos possui cadastro, listagem, edição de nome e exclusão.
 - Máquinas possui cadastro, busca por ID, edição de nome, alternância operacional e exclusão.
 - Operação inicia execução, finaliza apontamento com quantidade produzida e cancela execução criada por engano.
-- Acompanhamento separa ordens aguardando, em produção e finalizadas usando quantidades e execuções retornadas pela API.
-- Usuários possui cadastro, listagem, promoção para administrador e desativação.
+- Acompanhamento separa ordens aguardando, em produção, finalizadas e canceladas usando o status retornado pela API.
+- Usuários possui cadastro, listagem com situação ativa/inativa, promoção para administrador e desativação.
+- Execuções pausadas por quebra permanecem vinculadas à máquina e à etapa até a máquina voltar a ficar operacional.
 
 ## Pedir ao back-end antes de voltar ao processo completo
 
-- Liberar `PATCH` no CORS.
-- Retornar `status` em `OrderResponseDTO` e `SubOrderResponseDTO`.
-- Retornar `maquinaId` em `ExecutionResponseDTO`.
 - Vincular produto à ordem no DTO de criação e resposta.
 - Criar setor/tipo de centro em máquina.
 - Criar roteiro de processo com nome de etapa, setor e ordem da etapa.

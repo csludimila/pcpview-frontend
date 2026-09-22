@@ -76,9 +76,11 @@ export class MachineListComponent implements OnInit {
   }
 
   carregarExecucoes() {
-    this.executionOrderService.listarTodas({ status: 'RODANDO' }).subscribe({
+    this.executionOrderService.listarTodas().subscribe({
       next: (execucoes) => {
-        this.execucoesAbertas = execucoes.filter((execucao) => execucao.status === 'RODANDO');
+        this.execucoesAbertas = execucoes.filter((execucao) =>
+          execucao.status === 'RODANDO' || execucao.status === 'PAUSADA_POR_QUEBRA'
+        );
       },
       error: (err) => {
         this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar execuções em andamento.');
@@ -162,6 +164,7 @@ export class MachineListComponent implements OnInit {
       next: () => {
         this.mensagemFeedback = 'Status operacional atualizado.';
         this.carregarMaquinas();
+        this.carregarExecucoes();
       },
       error: (err) => {
         this.mensagemFeedback = apiErrorMessage(err, 'Erro ao alternar status da máquina.');

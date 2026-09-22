@@ -11,6 +11,10 @@
     <button class="summary-card done" [class.active]="abaAtiva === 'finalizadas'" (click)="mudarAba('finalizadas')">
       <strong>Finalizadas</strong>
     </button>
+
+    <button class="summary-card canceled" [class.active]="abaAtiva === 'canceladas'" (click)="mudarAba('canceladas')">
+      <strong>Canceladas</strong>
+    </button>
   </div>
 
   <div class="tracking-search">
@@ -151,6 +155,49 @@
             </td>
             <td>{{ formatarData(ordem.dataCriacao) }}</td>
             <td>{{ formatarData(execucaoFinalDaOrdem(ordem)?.dataFim) }}</td>
+            <td>{{ ordem.subOrdens?.length || 0 }}</td>
+            <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
+            <td>{{ progressoOrdem(ordem) }}%</td>
+            <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" *ngIf="abaAtiva === 'canceladas' && !isCarregando">
+    <div class="panel-header tracking-panel-title canceled">
+      Ordens Canceladas
+    </div>
+
+    <div class="data-table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>OF</th>
+            <th>PRIORIDADE</th>
+            <th>CRIADA EM</th>
+            <th>ETAPAS</th>
+            <th>QUANTIDADE</th>
+            <th>PROGRESSO</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="ordensCanceladasFiltradas.length === 0">
+            <td colspan="7" class="empty-cell">Nenhuma ordem cancelada.</td>
+          </tr>
+          <tr *ngFor="let ordem of ordensCanceladasFiltradas; trackBy: trackOrdem">
+            <td class="lot-cell">
+              <strong>{{ ordem.numeroOrdem }}</strong>
+              <div class="mini-route">
+                <span *ngFor="let etapa of linhaProcesso(ordem); trackBy: trackSubOrdem" [class]="classeEtapaRoteiro(etapa)">
+                  {{ etapa.codigoEtapa }}
+                </span>
+              </div>
+            </td>
+            <td>{{ ordem.prioridade || 5 }}</td>
+            <td>{{ formatarData(ordem.dataCriacao) }}</td>
             <td>{{ ordem.subOrdens?.length || 0 }}</td>
             <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
             <td>{{ progressoOrdem(ordem) }}%</td>

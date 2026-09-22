@@ -82,4 +82,38 @@ describe('OrderTrackingComponent', () => {
     expect(component.textoStatusOrdem(ordem)).toBe('FINALIZADA');
     expect(component.progressoOrdem(ordem)).toBe(100);
   });
+
+  it('deve usar os status de ordem retornados pelo backend', () => {
+    executionOrderServiceSpy.listarOrdens.and.returnValue(of([
+      { numeroOrdem: 'OF-AGUARDANDO', status: 'AGUARDANDO', prioridade: 2 },
+      { numeroOrdem: 'OF-PRODUCAO', status: 'EM_PROCESSAMENTO', prioridade: 1 },
+      { numeroOrdem: 'OF-FINALIZADA', status: 'FINALIZADO', prioridade: 3 },
+      { numeroOrdem: 'OF-CANCELADA', status: 'CANCELADO', prioridade: 4 }
+    ]));
+
+    component.carregarDados();
+
+    expect(component.ordensAguardando.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-AGUARDANDO']);
+    expect(component.ordensProducao.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-PRODUCAO']);
+    expect(component.ordensFinalizadas.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-FINALIZADA']);
+    expect(component.ordensCanceladas.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-CANCELADA']);
+  });
+
+  it('deve tratar execucao pausada por quebra como em andamento', () => {
+    component.execucoes = [{
+      id: 'exec-pausada',
+      maquinaId: 'M-01',
+      maquinaNome: 'TORNO CNC',
+      subOrdemId: 'OF-300-A-01',
+      status: 'PAUSADA_POR_QUEBRA'
+    }];
+    const ordem = {
+      numeroOrdem: 'OF-300',
+      status: 'EM_PROCESSAMENTO' as const,
+      subOrdens: [{ codigoEtapa: 'OF-300-A-01', status: 'EM_PROCESSAMENTO' as const }]
+    };
+
+    expect(component.execucaoAtivaDaOrdem(ordem)?.id).toBe('exec-pausada');
+    expect(component.textoStatusOrdem(ordem)).toBe('EM PRODUÇÃO');
+  });
 });

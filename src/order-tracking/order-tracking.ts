@@ -18,7 +18,7 @@ export class OrderTrackingComponent implements OnInit {
   private executionService = inject(ExecutionOrderService);
   private destroyRef = inject(DestroyRef);
 
-  abaAtiva: 'aguardando' | 'producao' | 'finalizadas' = 'aguardando';
+  abaAtiva: 'aguardando' | 'producao' | 'finalizadas' | 'canceladas' = 'aguardando';
   isCarregando = false;
   termoPesquisa = '';
   mensagemFeedback = '';
@@ -26,6 +26,7 @@ export class OrderTrackingComponent implements OnInit {
   ordensAguardando: OrderResponseDTO[] = [];
   ordensProducao: OrderResponseDTO[] = [];
   ordensFinalizadas: OrderResponseDTO[] = [];
+  ordensCanceladas: OrderResponseDTO[] = [];
   execucoes: ExecutionResponseDTO[] = [];
 
   ngOnInit() {
@@ -35,7 +36,7 @@ export class OrderTrackingComponent implements OnInit {
       .subscribe(() => this.carregarDados(true));
   }
 
-  mudarAba(novaAba: 'aguardando' | 'producao' | 'finalizadas') {
+  mudarAba(novaAba: 'aguardando' | 'producao' | 'finalizadas' | 'canceladas') {
     this.abaAtiva = novaAba;
   }
 
@@ -51,6 +52,10 @@ export class OrderTrackingComponent implements OnInit {
     return this.filtrarOrdens(this.ordensFinalizadas);
   }
 
+  get ordensCanceladasFiltradas(): OrderResponseDTO[] {
+    return this.filtrarOrdens(this.ordensCanceladas);
+  }
+
   carregarDados(silencioso = false) {
     if (!silencioso) {
       this.isCarregando = true;
@@ -64,11 +69,22 @@ export class OrderTrackingComponent implements OnInit {
         this.mensagemFeedback = '';
         this.execucoes = execucoes;
         this.ordensFinalizadas = ordens.filter((ordem) => this.estaFinalizada(ordem));
-        this.ordensProducao = ordens.filter((ordem) => !this.estaFinalizada(ordem) && this.temExecucaoAberta(ordem));
-        this.ordensAguardando = ordens.filter((ordem) => !this.estaFinalizada(ordem) && !this.temExecucaoAberta(ordem));
+        this.ordensCanceladas = ordens.filter((ordem) => this.estaCancelada(ordem));
+        this.ordensProducao = ordens.filter((ordem) =>
+          !this.estaFinalizada(ordem) &&
+          !this.estaCancelada(ordem) &&
+          (ordem.status === 'EM_PROCESSAMENTO' || this.temExecucaoAberta(ordem))
+        );
+        this.ordensAguardando = ordens.filter((ordem) =>
+          !this.estaFinalizada(ordem) &&
+          !this.estaCancelada(ordem) &&
+          ordem.status !== 'EM_PROCESSAMENTO' &&
+          !this.temExecucaoAberta(ordem)
+        );
         this.ordenarPorPrioridade(this.ordensAguardando);
         this.ordenarPorPrioridade(this.ordensProducao);
         this.ordenarPorPrioridade(this.ordensFinalizadas);
+        this.ordenarPorPrioridade(this.ordensCanceladas);
         this.isCarregando = false;
       },
       error: (err: unknown) => {
@@ -103,26 +119,33 @@ export class OrderTrackingComponent implements OnInit {
 
   classeEtapaRoteiro(etapa: SubOrderResponseDTO): string {
     if (this.etapaFinalizada(etapa)) return 'route-chip done';
+    if (etapa.status === 'CANCELADO') return 'route-chip canceled';
+    if (etapa.status === 'EM_PROCESSAMENTO') return 'route-chip active';
     if (this.execucaoAtivaDaEtapa(etapa.codigoEtapa)) return 'route-chip active';
     return 'route-chip waiting';
   }
 
   textoStatusOrdem(ordem: OrderResponseDTO): string {
+    if (ordem.status === 'CANCELADO') return 'CANCELADA';
+    if (ordem.status === 'FINALIZADO') return 'FINALIZADA';
+    if (ordem.status === 'EM_PROCESSAMENTO') return 'EM PRODUÇÃO';
+    if (ordem.status === 'AGUARDANDO') return 'AGUARDANDO';
     if (this.estaFinalizada(ordem)) return 'FINALIZADA';
     if (this.temExecucaoAberta(ordem)) return 'EM PRODUÇÃO';
     return 'AGUARDANDO';
   }
 
   classeStatusOrdem(ordem: OrderResponseDTO): string {
+    if (ordem.status === 'CANCELADO') return 'status-badge status-cancelado';
     if (this.estaFinalizada(ordem)) return 'status-badge status-finalizado';
-    if (this.temExecucaoAberta(ordem)) return 'status-badge status-producao';
+    if (ordem.status === 'EM_PROCESSAMENTO' || this.temExecucaoAberta(ordem)) return 'status-badge status-producao';
     return 'status-badge status-aguardando';
   }
 
   execucaoAtivaDaOrdem(ordem: OrderResponseDTO): ExecutionResponseDTO | undefined {
     const codigosSubOrdens = new Set((ordem.subOrdens || []).map((subOrdem) => subOrdem.codigoEtapa));
     return this.execucoes.find((execucao) =>
-      execucao.status === 'RODANDO' &&
+      this.execucaoEmAndamento(execucao) &&
       !!execucao.subOrdemId &&
       codigosSubOrdens.has(execucao.subOrdemId)
     );
@@ -171,6 +194,8 @@ export class OrderTrackingComponent implements OnInit {
   }
 
   private estaFinalizada(ordem: OrderResponseDTO): boolean {
+    if (ordem.status) return ordem.status === 'FINALIZADO';
+
     const quantidadeTotal = ordem.quantidadeTotal || 0;
     const quantidadeProduzida = ordem.quantidadeProduzida || 0;
     if (quantidadeTotal > 0 && quantidadeProduzida >= quantidadeTotal) return true;
@@ -180,6 +205,8 @@ export class OrderTrackingComponent implements OnInit {
   }
 
   private etapaFinalizada(etapa: SubOrderResponseDTO): boolean {
+    if (etapa.status) return etapa.status === 'FINALIZADO';
+
     const total = etapa.quantidadeTotal || 0;
     const produzida = etapa.quantidadeProduzida || 0;
     return total > 0 && produzida >= total;
@@ -199,8 +226,16 @@ export class OrderTrackingComponent implements OnInit {
     return !!this.execucaoAtivaDaOrdem(ordem);
   }
 
+  private estaCancelada(ordem: OrderResponseDTO): boolean {
+    return ordem.status === 'CANCELADO';
+  }
+
   private execucaoAtivaDaEtapa(codigoEtapa: string | undefined): ExecutionResponseDTO | undefined {
     if (!codigoEtapa) return undefined;
-    return this.execucoes.find((execucao) => execucao.status === 'RODANDO' && execucao.subOrdemId === codigoEtapa);
+    return this.execucoes.find((execucao) => this.execucaoEmAndamento(execucao) && execucao.subOrdemId === codigoEtapa);
+  }
+
+  private execucaoEmAndamento(execucao: ExecutionResponseDTO): boolean {
+    return execucao.status === 'RODANDO' || execucao.status === 'PAUSADA_POR_QUEBRA';
   }
 }

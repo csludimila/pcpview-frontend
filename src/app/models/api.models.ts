@@ -21,6 +21,7 @@ export interface UserResponseDTO {
   id?: string;
   login?: string;
   role?: UserRole;
+  ativo?: boolean;
 }
 
 export interface MachineRequestDTO {
@@ -69,6 +70,7 @@ export interface SubOrderResponseDTO {
   codigoEtapa?: string;
   quantidadeTotal?: number;
   quantidadeProduzida?: number;
+  status?: StatusProducao;
 }
 
 export interface OrderResponseDTO {
@@ -76,6 +78,7 @@ export interface OrderResponseDTO {
   quantidadeTotal?: number;
   quantidadeProduzida?: number;
   prioridade?: number;
+  status?: StatusProducao;
   dataCriacao?: string;
   subOrdens?: SubOrderResponseDTO[];
 }
