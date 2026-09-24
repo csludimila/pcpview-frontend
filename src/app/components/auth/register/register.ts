@@ -26,6 +26,10 @@ export class RegisterComponent {
 
   constructor(private authService: AuthService) {}
 
+  get totalUsuariosAtivos(): number {
+    return this.usuarios.filter((usuario) => this.usuarioAtivo(usuario)).length;
+  }
+
   ngOnInit() {
     this.carregarUsuarios();
   }
@@ -99,6 +103,10 @@ export class RegisterComponent {
 
   promoverParaAdmin(usuario: UserResponseDTO) {
     if (!usuario.id) return;
+    if (!this.usuarioAtivo(usuario)) {
+      this.mensagemFeedback = 'Não é possível promover um usuário desativado.';
+      return;
+    }
     if (usuario.role === 'ADMIN') {
       this.mensagemFeedback = 'Este usuário já é administrador.';
       return;
@@ -122,6 +130,10 @@ export class RegisterComponent {
 
   desativarUsuario(usuario: UserResponseDTO) {
     if (!usuario.id) return;
+    if (!this.usuarioAtivo(usuario)) {
+      this.mensagemFeedback = 'Este usuário já está desativado.';
+      return;
+    }
 
     if (this.usuarioDesativacaoPendenteId !== usuario.id) {
       this.usuarioDesativacaoPendenteId = usuario.id;
@@ -150,6 +162,14 @@ export class RegisterComponent {
   textoPerfil(role?: string): string {
     if (role === 'ADMIN') return 'Administrador';
     return 'Operador';
+  }
+
+  usuarioAtivo(usuario: UserResponseDTO): boolean {
+    return usuario.ativo !== false;
+  }
+
+  textoSituacao(usuario: UserResponseDTO): string {
+    return this.usuarioAtivo(usuario) ? 'Ativo' : 'Desativado';
   }
 
   loginUsuario(usuario: UserResponseDTO): string {

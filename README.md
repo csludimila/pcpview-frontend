@@ -94,20 +94,28 @@ docker run --rm -p 4200:80 pcpview-frontend
 ## Funcionalidades implementadas no front
 
 1. Login com JWT e controle visual de rotas para operador/admin.
-2. Cadastro, listagem, promoção para admin e desativação de usuários.
+2. Cadastro, listagem com situação ativa/inativa, promoção para admin e desativação de usuários.
 3. CRUD de produtos.
 4. CRUD de máquinas, busca por ID e alternância de status operacional.
 5. Criação de ordens por subconjuntos/letras e quantidade de etapas.
 6. Alteração de quantidade, prioridade e status de ordens.
 7. Criação, exclusão e alteração manual de status de subordens.
 8. Início, finalização com quantidade produzida e cancelamento de execuções.
-9. Acompanhamento por ordens aguardando, em produção e finalizadas.
+9. Acompanhamento pelos status reais da API: aguardando, em produção, finalizadas e canceladas.
+10. Identificação de execuções pausadas automaticamente quando uma máquina fica indisponível.
+
+## Atualizações do back-end já integradas
+
+- `PATCH` liberado no CORS para as alterações feitas pelo navegador.
+- Campo `ativo` retornado na listagem de usuários.
+- Campo `status` retornado em ordens e subordens.
+- Campo `maquinaId` retornado nas execuções.
+- Execuções passam para `PAUSADA_POR_QUEBRA` quando a máquina fica indisponível e voltam para `RODANDO` quando ela é liberada.
+- Login inválido retorna HTTP 401 com mensagem tratável pelo front.
 
 ## Pontos para pedir ao back-end
 
-- Liberar `PATCH` no CORS. O back usa endpoints PATCH, mas o CORS atual libera apenas GET, POST, PUT, DELETE e OPTIONS.
 - Configurar CORS por variável de ambiente para permitir a URL do front quando publicar na nuvem.
-- Se quiser acompanhamento mais preciso, incluir `status` em `OrderResponseDTO` e `SubOrderResponseDTO`.
 - Se quiser vincular OF a produto, incluir produto no `OrderRequestDTO`/`OrderResponseDTO`.
 - Se quiser fila por máquina, setor, roteiro industrial, pausa/retomada, setup de primeira peça, manutenção com retorno para fila ou dashboards, esses endpoints ainda não existem no back oficial.
 - Para nuvem com banco persistente, trocar o H2 em memória por um banco hospedado, como PostgreSQL, MySQL ou H2 em arquivo persistente com volume.

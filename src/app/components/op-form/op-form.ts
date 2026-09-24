@@ -82,14 +82,16 @@ export class OpFormComponent implements OnInit {
   carregarOrdensPlanejadas() {
     this.executionOrderService.listarOrdens().subscribe({
       next: (ordens) => {
-        this.listaDeOrdens = ordens.flatMap((ordem: OrderResponseDTO) =>
-          (ordem.subOrdens || [])
-            .filter((subOrdem) => this.temSaldo(subOrdem))
-            .map((subOrdem) => ({
-              ...subOrdem,
-              ordemNumero: ordem.numeroOrdem || ''
-            }))
-        ).sort((a, b) => (a.codigoEtapa || '').localeCompare(b.codigoEtapa || ''));
+        this.listaDeOrdens = ordens
+          .filter((ordem) => ordem.status !== 'FINALIZADO' && ordem.status !== 'CANCELADO')
+          .flatMap((ordem: OrderResponseDTO) =>
+            (ordem.subOrdens || [])
+              .filter((subOrdem) => this.temSaldo(subOrdem))
+              .map((subOrdem) => ({
+                ...subOrdem,
+                ordemNumero: ordem.numeroOrdem || ''
+              }))
+          ).sort((a, b) => (a.codigoEtapa || '').localeCompare(b.codigoEtapa || ''));
       },
       error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao carregar etapas planejadas.')
     });
@@ -109,8 +111,10 @@ export class OpFormComponent implements OnInit {
     return this.listaDeMaquinas.filter((maquina) => maquina.operacional !== false);
   }
 
-  get execucoesRodando(): ExecutionResponseDTO[] {
-    return this.listaDeExecucoes.filter((execucao) => execucao.status === 'RODANDO');
+  get execucoesEmAndamento(): ExecutionResponseDTO[] {
+    return this.listaDeExecucoes.filter((execucao) =>
+      execucao.status === 'RODANDO' || execucao.status === 'PAUSADA_POR_QUEBRA'
+    );
   }
 
   get subOrdemSelecionada(): SubOrderOption | undefined {
@@ -159,7 +163,8 @@ export class OpFormComponent implements OnInit {
     return !!this.opForm.controls.idMaquina.value &&
       !!this.opForm.controls.idEtapaSubOrdem.value &&
       this.maquinaPodeIniciar &&
-      !this.execucaoAbertaDaSubOrdem(this.opForm.controls.idEtapaSubOrdem.value);
+      !this.execucaoAbertaDaSubOrdem(this.opForm.controls.idEtapaSubOrdem.value) &&
+      !this.execucaoAbertaDaMaquina(this.opForm.controls.idMaquina.value);
   }
 
   get podeFinalizar(): boolean {
@@ -179,7 +184,7 @@ export class OpFormComponent implements OnInit {
   }
 
   textoOpcaoExecucao(execucao: ExecutionResponseDTO): string {
-    return `${execucao.subOrdemId || '-'} | ${execucao.maquinaNome || '-'} | ${execucao.operadorNome || '-'}`;
+    return `${execucao.subOrdemId || '-'} | ${execucao.maquinaNome || '-'} | ${execucao.operadorNome || '-'} | ${execucao.status || '-'}`;
   }
 
   onIniciar() {
@@ -280,20 +285,22 @@ export class OpFormComponent implements OnInit {
 
   private execucaoAbertaDaSubOrdem(codigoEtapa: string | null | undefined): ExecutionResponseDTO | undefined {
     if (!codigoEtapa) return undefined;
-    return this.execucoesRodando.find((execucao) => execucao.subOrdemId === codigoEtapa);
+    return this.execucoesEmAndamento.find((execucao) => execucao.subOrdemId === codigoEtapa);
   }
 
   private execucaoAbertaDaMaquina(maquinaId: string | null | undefined): ExecutionResponseDTO | undefined {
     if (!maquinaId) return undefined;
 
     const maquina = this.listaDeMaquinas.find((item) => item.id === maquinaId);
-    return this.execucoesRodando.find((execucao) =>
+    return this.execucoesEmAndamento.find((execucao) =>
       execucao.maquinaId === maquinaId ||
       (!!maquina?.nome && execucao.maquinaNome === maquina.nome)
     );
   }
 
   private temSaldo(subOrdem: SubOrderResponseDTO): boolean {
-    return (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0);
+    return subOrdem.status !== 'FINALIZADO' &&
+      subOrdem.status !== 'CANCELADO' &&
+      (subOrdem.quantidadeProduzida || 0) < (subOrdem.quantidadeTotal || 0);
   }
 }

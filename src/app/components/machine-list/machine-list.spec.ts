@@ -108,4 +108,22 @@ describe('MachineListComponent', () => {
 
     expect(component.execucaoAtivaDaMaquina({ id: 'M-01', nome: 'TORNO CNC' })?.id).toBe('exec-1');
   });
+
+  it('deve manter execucao pausada por quebra associada pelo maquinaId', () => {
+    executionOrderServiceSpy.listarTodas.and.returnValue(of([
+      {
+        id: 'exec-pausada',
+        maquinaId: 'M-01',
+        maquinaNome: 'TORNO CNC',
+        subOrdemId: 'OF-100-A-01',
+        status: 'PAUSADA_POR_QUEBRA'
+      },
+      { id: 'exec-finalizada', maquinaId: 'M-02', status: 'FINALIZADA' }
+    ]));
+
+    component.carregarExecucoes();
+
+    expect(component.execucoesAbertas.length).toBe(1);
+    expect(component.execucaoAtivaDaMaquina({ id: 'M-01', nome: 'TORNO CNC' })?.id).toBe('exec-pausada');
+  });
 });

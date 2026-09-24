@@ -1,9 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, tap } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { RegisterRequestDTO, UserResponseDTO } from '../models/api.models';
-
-export type UserModel = RegisterRequestDTO;
 
 export interface LoginRequestDTO {
   email: string;
@@ -18,59 +17,91 @@ export interface LoginResponseDTO {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API = 'http://localhost:8080/auth';
+  private http = inject(HttpClient);
+  private apiUrl = `${environment.apiUrl}/auth`;
 
-  constructor(private http: HttpClient) {}
+  constructor() { }
 
-  login(credenciais: LoginRequestDTO): Observable<LoginResponseDTO> {
-    return this.http.post<LoginResponseDTO>(`${this.API}/login`, credenciais).pipe(
-      tap((res) => {
-        if (res?.token) {
-          this.setSession(res.token, credenciais.email);
+  login(credentials: LoginRequestDTO): Observable<LoginResponseDTO> {
+    return this.http.post<LoginResponseDTO>(`${this.apiUrl}/login`, credentials).pipe(
+      switchMap(response => {
+        if (!response?.token) {
+          return of(response);
         }
+
+        this.setSession(response.token, credentials.email);
+
+        return this.listarUsuarios().pipe(
+          tap((usuarios) => this.marcarPerfilAutenticado(credentials.email, usuarios)),
+          map(() => response),
+          catchError(() => of(response))
+        );
       })
     );
   }
 
-  cadastrar(usuario: RegisterRequestDTO): Observable<any> {
-    return this.http.post(`${this.API}/register`, usuario);
+  renovarSessao(): Observable<LoginResponseDTO> {
+    return of({ token: this.getToken() || '' });
   }
 
-  registrar(usuario: RegisterRequestDTO): Observable<any> {
-    return this.cadastrar(usuario);
+  revogarSessao(): Observable<void> {
+    return of(void 0);
+  }
+
+  registrar(usuario: RegisterRequestDTO): Observable<void> {
+    const payload = {
+      userName: usuario.userName,
+      email: usuario.email,
+      password: usuario.password
+    };
+
+    return this.http.post<void>(this.apiUrl, payload);
   }
 
   listarUsuarios(): Observable<UserResponseDTO[]> {
-    return this.http.get<UserResponseDTO[]>(`${this.API}/users`);
+    return this.http.get<UserResponseDTO[]>(this.apiUrl);
   }
 
-  promoverParaAdmin(id?: string): Observable<any> {
-    return this.http.patch(`${this.API}/users/${id}/role`, { role: 'ADMIN' });
+  promoverParaAdmin(userId: string): Observable<UserResponseDTO> {
+    return this.http.patch<UserResponseDTO>(`${this.apiUrl}/${userId}/promote`, {});
   }
 
-  desativarUsuario(id?: string): Observable<any> {
-    return this.http.delete(`${this.API}/users/${id}`);
+  desativarUsuario(userId: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${userId}/desativar`, {});
   }
 
-  revogarSessao(): Observable<any> {
-    return of(true).pipe(tap(() => this.logout()));
-  }
-
-  setToken(token: string) {
+  private setSession(token: string, email: string, role?: string) {
     localStorage.setItem('token', token);
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem('userEmail', email);
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('accessTokenExpiresAt');
+
+    const perfil = role || this.decodificarRole(token) || 'USER';
+    localStorage.setItem('userRole', perfil);
+  }
+
+  logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('accessTokenExpiresAt');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token') || localStorage.getItem('auth_token');
+    return localStorage.getItem('token');
   }
 
-  getUserEmail(): string {
-    return localStorage.getItem('userEmail') || '';
+  getUserEmail(): string | null {
+    return localStorage.getItem('userEmail');
   }
 
-  getRole(): string {
-    return localStorage.getItem('userRole') || 'USER';
+  getRole(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    const role = this.decodificarRole(token);
+    return role || localStorage.getItem('userRole');
   }
 
   isAdmin(): boolean {
@@ -78,35 +109,50 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+
+    if (this.tokenExpirado(token)) {
+      this.logout();
+      return false;
+    }
+
+    return true;
   }
 
-  logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('accessTokenExpiresAt');
+  deveRenovarToken(): boolean {
+    return false;
   }
 
-  private setSession(token: string, email: string, role?: string) {
-    this.setToken(token);
-    localStorage.setItem('userEmail', email);
-
-    const perfil = role || this.decodificarRole(token) || 'USER';
-    localStorage.setItem('userRole', perfil);
-  }
-
-  private decodificarRole(token: string): string | null {
+  private decodificarRole(token: string): string {
     try {
-      const payloadBase64 = token.split('.')[1];
-      if (!payloadBase64) return null;
-      const decodedJson = atob(payloadBase64);
-      const payload = JSON.parse(decodedJson);
-      return payload.role || payload.perfil || null;
-    } catch {
-      return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role || '';
+    } catch(e) {}
+
+    return '';
+  }
+
+  private marcarPerfilAutenticado(email: string, usuarios: UserResponseDTO[]) {
+    const emailNormalizado = email.trim().toLowerCase();
+    const usuario = usuarios.find((item) => this.loginUsuario(item).toLowerCase() === emailNormalizado);
+
+    localStorage.setItem('userRole', usuario?.role || 'ADMIN');
+    localStorage.setItem('userEmail', usuario ? this.loginUsuario(usuario) : emailNormalizado);
+  }
+
+  private loginUsuario(usuario: UserResponseDTO): string {
+    return usuario.login || '';
+  }
+
+  private tokenExpirado(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (!payload.exp) return false;
+
+      return payload.exp * 1000 <= Date.now();
+    } catch(e) {
+      return true;
     }
   }
 }

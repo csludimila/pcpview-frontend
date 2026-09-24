@@ -119,4 +119,10 @@ describe('OrderForm', () => {
     expect(executionOrderServiceSpy.criarSubOrdem).toHaveBeenCalledWith('OF-001', 'C');
     expect(executionOrderServiceSpy.alterarStatusSubOrdem).toHaveBeenCalledWith('OF-001-A-01', 'CANCELADO');
   });
+
+  it('deve apresentar os status retornados pelo backend', () => {
+    expect(component.textoStatusProducao('EM_PROCESSAMENTO')).toBe('Em processamento');
+    expect(component.classeStatusProducao('FINALIZADO')).toBe('status-finalizado');
+    expect(component.classeStatusProducao('CANCELADO')).toBe('status-cancelado');
+  });
 });

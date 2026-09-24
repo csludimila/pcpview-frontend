@@ -359,6 +359,24 @@ export class OrderFormComponent implements OnInit {
     return new Date(data).toLocaleString('pt-BR');
   }
 
+  textoStatusProducao(status?: StatusProducao): string {
+    const textos: Record<StatusProducao, string> = {
+      AGUARDANDO: 'Aguardando',
+      EM_PROCESSAMENTO: 'Em processamento',
+      FINALIZADO: 'Finalizado',
+      CANCELADO: 'Cancelado'
+    };
+
+    return status ? textos[status] : 'Não informado';
+  }
+
+  classeStatusProducao(status?: StatusProducao): string {
+    if (status === 'EM_PROCESSAMENTO') return 'status-producao';
+    if (status === 'FINALIZADO') return 'status-finalizado';
+    if (status === 'CANCELADO') return 'status-cancelado';
+    return 'status-aguardando';
+  }
+
   private montarSubconjuntosPayload(): NonNullable<OrderRequestDTO['subconjuntos']> {
     return this.subconjuntos
       .map((item) => ({

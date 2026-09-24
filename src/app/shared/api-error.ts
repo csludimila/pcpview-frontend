@@ -8,7 +8,7 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
         return 'Servidor indisponível. Verifique se a API publicada está online.';
       }
 
-      return 'Servidor indisponível. Inicie o ambiente local e confirme o backend em http://localhost:8080/health.';
+      return 'Servidor indisponível. Inicie o backend e confirme que ele está rodando em http://localhost:8080.';
     }
 
     if (typeof error.error === 'string' && error.error.trim()) {

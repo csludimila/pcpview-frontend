@@ -142,4 +142,46 @@ describe('OpFormComponent', () => {
     expect(component.loteSelecionado).toBe('OF-100-A-01');
     expect(component.saldoSelecionado).toBe('1 / 4 PEÇAS');
   });
+
+  it('deve manter execucao pausada vinculada a maquina e bloquear novo inicio', () => {
+    const maquina: MachineResponseDTO = { id: 'M-01', nome: 'MAQUINA 01', operacional: true };
+    component.listaDeMaquinas = [maquina];
+    component.maquinaSelecionada = maquina;
+    component.listaDeExecucoes = [{
+      id: 'exec-pausada',
+      maquinaId: 'M-01',
+      maquinaNome: 'MAQUINA 01',
+      subOrdemId: 'OF-001-A-01',
+      status: 'PAUSADA_POR_QUEBRA'
+    }];
+    component.opForm.patchValue({ idMaquina: 'M-01', idEtapaSubOrdem: 'OF-002-A-01' });
+
+    expect(component.execucoesEmAndamento.length).toBe(1);
+    expect(component.podeIniciar).toBeFalse();
+
+    component.execucaoAtual = component.listaDeExecucoes[0];
+    expect(component.podeFinalizar).toBeFalse();
+  });
+
+  it('nao deve oferecer ordens ou etapas encerradas para apontamento', () => {
+    executionOrderServiceSpy.listarOrdens.and.returnValue(of([
+      {
+        numeroOrdem: 'OF-CANCELADA',
+        status: 'CANCELADO',
+        subOrdens: [{ codigoEtapa: 'OF-CANCELADA-A-01', quantidadeTotal: 2, quantidadeProduzida: 0, status: 'CANCELADO' }]
+      },
+      {
+        numeroOrdem: 'OF-ATIVA',
+        status: 'AGUARDANDO',
+        subOrdens: [
+          { codigoEtapa: 'OF-ATIVA-A-01', quantidadeTotal: 2, quantidadeProduzida: 0, status: 'AGUARDANDO' },
+          { codigoEtapa: 'OF-ATIVA-A-02', quantidadeTotal: 2, quantidadeProduzida: 0, status: 'FINALIZADO' }
+        ]
+      }
+    ]));
+
+    component.carregarOrdensPlanejadas();
+
+    expect(component.listaDeOrdens.map((item) => item.codigoEtapa)).toEqual(['OF-ATIVA-A-01']);
+  });
 });

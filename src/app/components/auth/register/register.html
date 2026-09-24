@@ -43,8 +43,8 @@
             <div class="register-header users-header">
                 <span class="register-icon">AC</span>
                 <div>
-                    <h3>Usuários Ativos</h3>
-                    <p>{{ usuarios.length }} acessos cadastrados</p>
+                    <h3>Usuários Cadastrados</h3>
+                    <p>{{ totalUsuariosAtivos }} ativos de {{ usuarios.length }} acessos</p>
                 </div>
             </div>
 
@@ -55,9 +55,14 @@
                             <strong>{{ loginUsuario(usuario) }}</strong>
                             <span>ID: {{ usuario.id || '-' }}</span>
                         </div>
-                        <span class="status-badge" [ngClass]="usuario.role === 'ADMIN' ? 'status-producao' : 'status-aguardando'">
-                            {{ textoPerfil(usuario.role) }}
-                        </span>
+                        <div class="user-badges">
+                            <span class="status-badge" [ngClass]="usuario.role === 'ADMIN' ? 'status-producao' : 'status-aguardando'">
+                                {{ textoPerfil(usuario.role) }}
+                            </span>
+                            <span class="status-badge" [ngClass]="usuarioAtivo(usuario) ? 'status-finalizado' : 'status-inativo'">
+                                {{ textoSituacao(usuario) }}
+                            </span>
+                        </div>
                     </div>
 
                     <div class="user-actions">
@@ -65,15 +70,15 @@
                             type="button"
                             class="btn btn-small btn-blue"
                             (click)="promoverParaAdmin(usuario)"
-                            [disabled]="usuario.role === 'ADMIN' || isCarregando">
+                            [disabled]="usuario.role === 'ADMIN' || !usuarioAtivo(usuario) || isCarregando">
                             Promover admin
                         </button>
                         <button
                             type="button"
                             class="btn btn-small btn-red"
                             (click)="desativarUsuario(usuario)"
-                            [disabled]="isCarregando">
-                            {{ usuarioDesativacaoPendenteId === usuario.id ? 'Confirmar' : 'Desativar' }}
+                            [disabled]="!usuarioAtivo(usuario) || isCarregando">
+                            {{ usuarioAtivo(usuario) ? (usuarioDesativacaoPendenteId === usuario.id ? 'Confirmar' : 'Desativar') : 'Desativado' }}
                         </button>
                     </div>
                 </div>

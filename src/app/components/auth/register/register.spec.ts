@@ -108,6 +108,20 @@ describe('RegisterComponent', () => {
     expect(component.textoPerfil('USER')).toBe('Operador');
   });
 
+  it('deve diferenciar usuarios ativos e desativados', () => {
+    component.usuarios = [
+      { id: '1', login: 'ativo@pcpview.local', role: 'USER', ativo: true },
+      { id: '2', login: 'inativo@pcpview.local', role: 'USER', ativo: false }
+    ];
+
+    expect(component.totalUsuariosAtivos).toBe(1);
+    expect(component.textoSituacao(component.usuarios[0])).toBe('Ativo');
+    expect(component.textoSituacao(component.usuarios[1])).toBe('Desativado');
+
+    component.promoverParaAdmin(component.usuarios[1]);
+    expect(authServiceSpy.promoverParaAdmin).not.toHaveBeenCalled();
+  });
+
   it('deve promover usuario para administrador', () => {
     const usuario = component.usuarios[1];
 
