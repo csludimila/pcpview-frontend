@@ -1,89 +1,148 @@
-<div class="machine-page">
-  <div class="machine-page-header">
-    <h2>Máquinas</h2>
+<main class="machine-page" role="main" aria-labelledby="machines-page-title">
+  <header class="machine-page-header">
+    <h1 id="machines-page-title">Máquinas</h1>
 
-    <div class="add-machine-area" *ngIf="isAdmin">
-      <input
-        type="text"
-        class="search-bar id-input"
-        placeholder="ID DA MÁQUINA"
-        [(ngModel)]="novaMaquinaId"
-        aria-label="ID da nova máquina">
-      <input
-        type="text"
-        class="search-bar"
-        placeholder="NOME DA MÁQUINA"
-        [(ngModel)]="novaMaquinaNome"
-        (keyup.enter)="adicionarMaquina()"
-        aria-label="Nome da nova máquina">
-      <button class="btn btn-blue" type="button" (click)="adicionarMaquina()" [disabled]="isCarregando">
+    <!-- Cadastro Rápido de Máquina -->
+    <section class="add-machine-area" *ngIf="isAdmin" aria-label="Cadastro de nova máquina">
+      <div class="input-wrapper">
+        <label for="new-machine-id" class="visually-hidden">ID da nova máquina</label>
+        <input
+          id="new-machine-id"
+          type="text"
+          class="search-bar id-input"
+          placeholder="ID DA MÁQUINA"
+          [(ngModel)]="novaMaquinaId"
+          aria-required="true">
+      </div>
+
+      <div class="input-wrapper">
+        <label for="new-machine-name" class="visually-hidden">Nome da nova máquina</label>
+        <input
+          id="new-machine-name"
+          type="text"
+          class="search-bar"
+          placeholder="NOME DA MÁQUINA"
+          [(ngModel)]="novaMaquinaNome"
+          (keyup.enter)="adicionarMaquina()"
+          aria-required="true">
+      </div>
+
+      <button 
+        class="btn btn-blue" 
+        type="button" 
+        (click)="adicionarMaquina()" 
+        [disabled]="isCarregando"
+        [attr.aria-busy]="isCarregando">
         Cadastrar
       </button>
-    </div>
-  </div>
+    </section>
+  </header>
 
-  <div class="panel machine-search-panel">
+  <!-- Busca por ID -->
+  <section class="panel machine-search-panel" aria-labelledby="search-section-title">
     <div class="machine-search-copy">
-      <h3>Buscar por ID</h3>
-      <span>{{ textoQuantidade(maquinas.length) }} cadastradas</span>
+      <h2 id="search-section-title">Buscar por ID</h2>
+      <span aria-live="polite">{{ textoQuantidade(maquinas.length) }} cadastradas</span>
     </div>
+
     <div class="machine-search-form">
+      <label for="search-machine-input" class="visually-hidden">Digite o ID da máquina para buscar</label>
       <input
-        type="text"
+        id="search-machine-input"
+        type="search"
         [(ngModel)]="buscaMaquinaId"
         (keyup.enter)="buscarMaquinaPorId()"
         placeholder="Ex: MAQ-001"
         aria-label="Buscar máquina por ID">
-      <button type="button" class="btn btn-blue" (click)="buscarMaquinaPorId()" [disabled]="isCarregando">
+      <button 
+        type="button" 
+        class="btn btn-blue" 
+        (click)="buscarMaquinaPorId()" 
+        [disabled]="isCarregando">
         Buscar
       </button>
     </div>
-  </div>
+  </section>
 
-  <div *ngIf="maquinaEncontrada" class="panel found-machine-panel">
+  <!-- Painel de Máquina Encontrada -->
+  <aside 
+    *ngIf="maquinaEncontrada" 
+    class="panel found-machine-panel" 
+    role="status" 
+    aria-live="polite" 
+    aria-label="Resultado da busca">
     <strong>{{ maquinaEncontrada.nome }}</strong>
-    <span>ID: {{ maquinaEncontrada.id }} · {{ textoStatusMaquina(maquinaEncontrada) }}</span>
-  </div>
+    <span>ID: {{ maquinaEncontrada.id }} · Status: {{ textoStatusMaquina(maquinaEncontrada) }}</span>
+  </aside>
 
-  <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-bottom: 20px;" role="status" aria-live="polite">
+  <!-- Feedback / Alertas -->
+  <div 
+    *ngIf="mensagemFeedback" 
+    class="alert-banner" 
+    style="margin-bottom: 20px;" 
+    role="status" 
+    aria-live="polite" 
+    aria-atomic="true">
     {{ mensagemFeedback }}
   </div>
 
-  <div *ngIf="maquinas.length === 0 && !isCarregando" class="empty-message">
+  <div *ngIf="maquinas.length === 0 && !isCarregando" class="empty-message" role="status">
     Nenhuma máquina cadastrada.
   </div>
 
-  <div *ngIf="isCarregando" class="empty-message" style="color: var(--accent);">
+  <div *ngIf="isCarregando" class="empty-message" style="color: var(--accent);" role="status" aria-live="polite">
     Comunicando com o servidor...
   </div>
 
-  <section class="sector-band">
+  <!-- Grelha Operacional das Máquinas -->
+  <section class="sector-band" aria-labelledby="operational-list-title">
     <div class="sector-title">
-      <h3>Lista operacional</h3>
-      <span>{{ textoQuantidade(maquinas.length) }}</span>
+      <h2 id="operational-list-title">Lista operacional</h2>
+      <span aria-live="polite">{{ textoQuantidade(maquinas.length) }}</span>
     </div>
 
-    <div class="machine-grid">
-      <div class="machine-card" *ngFor="let maq of maquinas; trackBy: trackMaquina">
-        <div class="machine-title-row">
+    <div class="machine-grid" role="list">
+      <article 
+        class="machine-card" 
+        *ngFor="let maq of maquinas; trackBy: trackMaquina" 
+        role="listitem"
+        [attr.aria-labelledby]="'machine-title-' + maq.id">
+        
+        <header class="machine-title-row">
+          <!-- Modo Edição de Nome -->
           <ng-container *ngIf="maquinaEdicaoId === maq.id; else tituloMaquina">
             <div class="machine-edit-area">
+              <label [for]="'edit-machine-name-' + maq.id" class="visually-hidden">Editar nome da máquina {{ maq.id }}</label>
               <input
+                [id]="'edit-machine-name-' + maq.id"
                 type="text"
                 class="machine-edit-input"
                 [(ngModel)]="nomeMaquinaEditado"
                 (keyup.enter)="salvarNomeMaquina(maq)"
-                (keyup.escape)="cancelarEdicaoMaquina()"
-                aria-label="Novo nome da máquina">
+                (keyup.escape)="cancelarEdicaoMaquina()">
               <div class="machine-edit-actions">
-                <button type="button" class="icon-btn save-btn" title="Salvar nome" (click)="salvarNomeMaquina(maq)">✓</button>
-                <button type="button" class="icon-btn cancel-btn" title="Cancelar edição" (click)="cancelarEdicaoMaquina()">×</button>
+                <button 
+                  type="button" 
+                  class="icon-btn save-btn" 
+                  [attr.aria-label]="'Salvar alterações no nome da máquina ' + maq.nome" 
+                  (click)="salvarNomeMaquina(maq)">
+                  <span aria-hidden="true">✓</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="icon-btn cancel-btn" 
+                  [attr.aria-label]="'Cancelar edição de ' + maq.nome" 
+                  (click)="cancelarEdicaoMaquina()">
+                  <span aria-hidden="true">×</span>
+                </button>
               </div>
             </div>
           </ng-container>
+
+          <!-- Modo Visualização -->
           <ng-template #tituloMaquina>
             <div>
-              <h3>{{ maq.nome }}</h3>
+              <h3 [id]="'machine-title-' + maq.id">{{ maq.nome }}</h3>
               <span class="machine-sector-pill">ID {{ maq.id }}</span>
             </div>
           </ng-template>
@@ -92,29 +151,30 @@
             <button
               type="button"
               class="icon-btn edit-btn"
-              title="Editar nome da máquina"
+              [attr.aria-label]="'Editar nome da máquina ' + maq.nome"
               *ngIf="maquinaEdicaoId !== maq.id"
               (click)="iniciarEdicaoMaquina(maq)">
-              ✎
+              <span aria-hidden="true">✎</span>
             </button>
             <button
               type="button"
               class="icon-btn delete-btn"
               [class.confirming]="maquinaExclusaoPendente === maq.id"
-              [title]="maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão' : 'Excluir máquina'"
+              [attr.aria-label]="(maquinaExclusaoPendente === maq.id ? 'Confirmar exclusão definitiva da máquina ' : 'Excluir máquina ') + maq.nome"
               (click)="excluirMaquina(maq.id)">
-              {{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}
+              <span aria-hidden="true">{{ maquinaExclusaoPendente === maq.id ? '!' : '×' }}</span>
             </button>
           </div>
-        </div>
+        </header>
 
-        <div class="status-area">
+        <div class="status-area" role="status">
           <span class="status-label">Status: </span>
-          <span class="status-dot" [ngClass]="classeStatusMaquina(maq)"></span>
+          <span class="status-dot" [ngClass]="classeStatusMaquina(maq)" aria-hidden="true"></span>
           <span class="status-text">{{ textoStatusMaquina(maq) }}</span>
         </div>
 
-        <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)">
+        <!-- Bloco de Execução Ativa no Chão de Fábrica -->
+        <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)" role="region" [attr.aria-label]="'Produção ativa na máquina ' + maq.nome">
           <div>
             <span>Execução</span>
             <strong>{{ execucaoAtivaDaMaquina(maq)?.id }}</strong>
@@ -133,10 +193,15 @@
           </div>
         </div>
 
-        <button class="btn-toggle-status" type="button" (click)="alternarStatus(maq.id)" [disabled]="isCarregando">
+        <button 
+          class="btn-toggle-status" 
+          type="button" 
+          (click)="alternarStatus(maq.id)" 
+          [disabled]="isCarregando"
+          [attr.aria-label]="(maq.operacional === false ? 'Liberar máquina ' : 'Marcar indisponível a máquina ') + maq.nome">
           {{ maq.operacional === false ? 'Liberar Máquina' : 'Marcar Indisponível' }}
         </button>
-      </div>
+      </article>
     </div>
   </section>
-</div>
+</main>

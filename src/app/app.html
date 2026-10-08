@@ -1,31 +1,115 @@
-<div class="header container app-header" *ngIf="mostrarMenu">
+<header class="header container app-header" *ngIf="mostrarMenu" role="banner">
 
   <div class="header-logo-area">
-      <span class="brand-mark">PCP</span>
-      <span class="brand-title">PCPView</span>
+    <span class="brand-mark" aria-hidden="true">PCP</span>
+    <span class="brand-title">PCPView</span>
   </div>
 
   <nav class="nav-menu" aria-label="Navegação principal">
-      <a *ngIf="isAdmin()" class="btn nav-btn" routerLink="/planejamento" routerLinkActive="active" aria-label="Abrir Planejamento"><span class="nav-code">PL</span> Planejamento</a>
-      <a *ngIf="isAdmin()" class="btn nav-btn" routerLink="/produtos" routerLinkActive="active" aria-label="Abrir Produtos"><span class="nav-code">PR</span> Produtos</a>
-      <a class="btn nav-btn" routerLink="/operacao" routerLinkActive="active" aria-label="Abrir Operação"><span class="nav-code">OP</span> Operação</a>
-      <a class="btn nav-btn" routerLink="/acompanhamento" routerLinkActive="active" aria-label="Abrir Acompanhamento"><span class="nav-code">AC</span> Acompanhamento</a>
-      <a class="btn nav-btn" routerLink="/maquinas" routerLinkActive="active" aria-label="Abrir Máquinas"><span class="nav-code">MQ</span> Máquinas</a>
-      <a *ngIf="isAdmin()" class="btn nav-btn" routerLink="/cadastro" routerLinkActive="active" aria-label="Abrir Usuários"><span class="nav-code">US</span> Usuários</a>
+    <ul class="nav-list" role="list">
+      <li *ngIf="isAdmin()">
+        <a 
+          class="btn nav-btn" 
+          routerLink="/planejamento" 
+          routerLinkActive="active" 
+          #rlaPlanejamento="routerLinkActive"
+          [attr.aria-current]="rlaPlanejamento.isActive ? 'page' : null">
+          <span class="nav-code" aria-hidden="true">PL</span>
+          <span>Planejamento</span>
+        </a>
+      </li>
+
+      <li *ngIf="isAdmin()">
+        <a 
+          class="btn nav-btn" 
+          routerLink="/produtos" 
+          routerLinkActive="active" 
+          #rlaProdutos="routerLinkActive"
+          [attr.aria-current]="rlaProdutos.isActive ? 'page' : null">
+          <span class="nav-code" aria-hidden="true">PR</span>
+          <span>Produtos</span>
+        </a>
+      </li>
+
+      <li>
+        <a 
+          class="btn nav-btn" 
+          routerLink="/operacao" 
+          routerLinkActive="active" 
+          #rlaOperacao="routerLinkActive"
+          [attr.aria-current]="rlaOperacao.isActive ? 'page' : null">
+          <span class="nav-code" aria-hidden="true">OP</span>
+          <span>Operação</span>
+        </a>
+      </li>
+
+      <li>
+        <a 
+          class="btn nav-btn" 
+          routerLink="/acompanhamento" 
+          routerLinkActive="active" 
+          #rlaAcomp="routerLinkActive"
+          [attr.aria-current]="rlaAcomp.isActive ? 'page' : null">
+          <span class="nav-code" aria-hidden="true">AC</span>
+          <span>Acompanhamento</span>
+        </a>
+      </li>
+
+      <li>
+        <a 
+          class="btn nav-btn" 
+          routerLink="/maquinas" 
+          routerLinkActive="active" 
+          #rlaMaquinas="routerLinkActive"
+          [attr.aria-current]="rlaMaquinas.isActive ? 'page' : null">
+          <span class="nav-code" aria-hidden="true">MQ</span>
+          <span>Máquinas</span>
+        </a>
+      </li>
+
+      <li *ngIf="isAdmin()">
+        <a 
+          class="btn nav-btn" 
+          routerLink="/cadastro" 
+          routerLinkActive="active" 
+          #rlaUsuarios="routerLinkActive"
+          [attr.aria-current]="rlaUsuarios.isActive ? 'page' : null">
+          <span class="nav-code" aria-hidden="true">US</span>
+          <span>Usuários</span>
+        </a>
+      </li>
+    </ul>
   </nav>
 
   <div class="header-user-area">
-      <span id="user-info">{{ userLabel }}</span>
-      <button class="btn btn-red logout-btn" type="button" (click)="fazerLogout()" aria-label="Sair do sistema">Sair</button>
+    <span id="user-info" aria-label="Usuário logado">{{ userLabel }}</span>
+    <button 
+      class="btn btn-red logout-btn" 
+      type="button" 
+      (click)="fazerLogout()" 
+      aria-label="Sair da conta e encerrar sessão">
+      Sair
+    </button>
   </div>
 
-</div>
+</header>
 
-<div class="container global-error" *ngIf="erroGlobal" role="alert" aria-live="assertive">
+<aside 
+  class="container global-error" 
+  *ngIf="erroGlobal" 
+  role="alert" 
+  aria-live="assertive" 
+  aria-atomic="true">
   <span>{{ erroGlobal }}</span>
-  <button type="button" class="global-error-close" (click)="limparErroGlobal()" aria-label="Fechar aviso">×</button>
-</div>
+  <button 
+    type="button" 
+    class="global-error-close" 
+    (click)="limparErroGlobal()" 
+    aria-label="Fechar mensagem de erro">
+    <span aria-hidden="true">×</span>
+  </button>
+</aside>
 
-<div class="container-fluid app-content">
+<main class="container-fluid app-content" id="main-content" role="main">
   <router-outlet></router-outlet>
-</div>
+</main>

@@ -1,79 +1,142 @@
-<div class="control-panels op-page">
+<section class="control-panels op-page" aria-labelledby="op-title">
   <div class="panel ihm-operacao">
-    <div class="op-header">
-      <span class="op-icon">OP</span>
-      <h3>Apontamento de Produção</h3>
-    </div>
+    <header class="op-header">
+      <span class="op-icon" aria-hidden="true">OP</span>
+      <h1 id="op-title">Apontamento de Produção</h1>
+    </header>
 
-    <form [formGroup]="opForm">
+    <form [formGroup]="opForm" novalidate>
+      <!-- Seleção de Máquina -->
       <div class="form-group">
         <label for="op-machine">MÁQUINA</label>
-        <select id="op-machine" formControlName="idMaquina">
-          <option value="" disabled selected>Selecione a máquina</option>
+        <select 
+          id="op-machine" 
+          formControlName="idMaquina"
+          aria-describedby="op-machine-status"
+          aria-required="true">
+          <option value="" class="placeholder-option">-- Selecione a máquina --</option>
           <option *ngFor="let maq of maquinasDisponiveisOperacao" [value]="maq.id">
             {{ maq.nome }} · {{ maq.id }}
           </option>
         </select>
 
-        <div *ngIf="maquinaSelecionada" class="machine-state-row">
+        <div *ngIf="maquinaSelecionada" id="op-machine-status" class="machine-state-row" aria-live="polite">
           <span class="badge" [ngClass]="classeStatusMaquinaSelecionada">
-            {{ textoStatusMaquinaSelecionada }}
+            Status da Máquina: {{ textoStatusMaquinaSelecionada }}
           </span>
         </div>
       </div>
 
+      <!-- Seleção de Etapa -->
       <div class="form-group">
         <label for="op-sub-order">ETAPA DA OF</label>
-        <select id="op-sub-order" formControlName="idEtapaSubOrdem">
-          <option value="" disabled selected>Selecione a etapa</option>
+        <select 
+          id="op-sub-order" 
+          formControlName="idEtapaSubOrdem"
+          aria-describedby="op-queue-count"
+          aria-required="true">
+          <option value="" class="placeholder-option">-- Selecione a etapa --</option>
           <option *ngFor="let ord of listaDeOrdens" [value]="ord.codigoEtapa">
             {{ textoOpcaoOrdem(ord) }}
           </option>
         </select>
-        <div class="queue-hint">{{ listaDeOrdens.length }} etapas com saldo para apontamento</div>
+        <div id="op-queue-count" class="queue-hint">
+          {{ listaDeOrdens.length }} etapas com saldo para apontamento
+        </div>
       </div>
 
+      <!-- Execução em Andamento -->
       <div class="form-group">
         <label for="op-execution">EXECUÇÃO EM ANDAMENTO</label>
-        <select id="op-execution" formControlName="idExecucao">
-          <option value="">-- SELECIONE SE JÁ ESTIVER RODANDO --</option>
+        <select id="op-execution" formControlName="idExecucao" aria-describedby="op-execution-hint">
+          <option value="" class="placeholder-option">-- SELECIONE SE JÁ ESTIVER RODANDO --</option>
           <option *ngFor="let execucao of execucoesEmAndamento" [value]="execucao.id">
             {{ textoOpcaoExecucao(execucao) }}
           </option>
         </select>
+        <small id="op-execution-hint" class="visually-hidden">
+          Selecione uma execução para retomar ou cancelar um apontamento ativo.
+        </small>
       </div>
 
-      <div id="ihm-display-info" class="of-ativa-text">
-        <p>ETAPA: <span>{{ loteSelecionado }}</span></p>
-        <p>MÁQUINA: <span>{{ maquinaSelecionadaTexto }}</span></p>
+      <!-- Display Digital do Painel IHM -->
+      <div 
+        id="ihm-display-info" 
+        class="of-ativa-text" 
+        role="region" 
+        aria-label="Informações da execução ativa"
+        aria-live="polite" 
+        aria-atomic="true">
+        <p>ETAPA: <span class="highlight-val">{{ loteSelecionado }}</span></p>
+        <p>MÁQUINA: <span class="highlight-val">{{ maquinaSelecionadaTexto }}</span></p>
         <p>SALDO: <span class="status-ok">{{ saldoSelecionado }}</span></p>
-        <p>EXECUÇÃO: <span>{{ execucaoAtual?.id || '-' }}</span></p>
-        <p>OPERADOR: <span>{{ execucaoAtual?.operadorNome || '-' }}</span></p>
-        <p>STATUS: <span class="status-ok">{{ statusExecucaoAtual }}</span></p>
-        <p>INÍCIO: <span>{{ formatarData(execucaoAtual?.dataInicio) }}</span></p>
+        <p>EXECUÇÃO: <span class="highlight-val">{{ execucaoAtual?.id || '-' }}</span></p>
+        <p>OPERADOR: <span class="highlight-val">{{ execucaoAtual?.operadorNome || '-' }}</span></p>
+        <p>STATUS: <span [ngClass]="execucaoRodando ? 'status-ok' : 'status-wait'">{{ statusExecucaoAtual }}</span></p>
+        <p>INÍCIO: <span class="highlight-val">{{ formatarData(execucaoAtual?.dataInicio) }}</span></p>
       </div>
 
+      <!-- Ações de Início e Cancelamento -->
       <div class="action-buttons">
-        <button type="button" class="btn btn-green" (click)="onIniciar()" [disabled]="!podeIniciar">
-          Iniciar
+        <button 
+          type="button" 
+          class="btn btn-green" 
+          (click)="onIniciar()" 
+          [disabled]="!podeIniciar"
+          accesskey="i"
+          aria-keyshortcuts="Alt+I"
+          aria-label="Iniciar execução de produção (Atalho Alt + I)">
+          Iniciar <kbd aria-hidden="true">(Alt+I)</kbd>
         </button>
-        <button type="button" class="btn btn-red" (click)="onCancelar()" [disabled]="!podeCancelar">
-          Cancelar Execução
+
+        <button 
+          type="button" 
+          class="btn btn-red" 
+          (click)="onCancelar()" 
+          [disabled]="!podeCancelar"
+          accesskey="c"
+          aria-keyshortcuts="Alt+C"
+          aria-label="Cancelar execução ativa (Atalho Alt + C)">
+          Cancelar Execução <kbd aria-hidden="true">(Alt+C)</kbd>
         </button>
       </div>
 
-      <hr class="op-divider">
+      <hr class="op-divider" aria-hidden="true">
 
+      <!-- Apontamento e Finalização -->
       <div class="apontamento-area">
-        <input type="number" formControlName="quantidadeProduzida" min="0" placeholder="Qtd" aria-label="Quantidade produzida">
-        <button type="button" class="btn btn-orange" (click)="onFinalizar()" [disabled]="!podeFinalizar">
-          Apontar / Finalizar
+        <div class="input-container">
+          <label for="op-qtd-input" class="visually-hidden">Quantidade Produzida a Apontar</label>
+          <input 
+            id="op-qtd-input"
+            type="number" 
+            formControlName="quantidadeProduzida" 
+            min="0" 
+            placeholder="Qtd" 
+            aria-label="Quantidade produzida">
+        </div>
+
+        <button 
+          type="button" 
+          class="btn btn-orange" 
+          (click)="onFinalizar()" 
+          [disabled]="!podeFinalizar"
+          accesskey="f"
+          aria-keyshortcuts="Alt+F"
+          aria-label="Apontar peças e finalizar execução (Atalho Alt + F)">
+          Apontar / Finalizar <kbd aria-hidden="true">(Alt+F)</kbd>
         </button>
       </div>
 
-      <div *ngIf="mensagemFeedback" class="alert-banner op-alert" role="status" aria-live="polite">
-        {{ mensagemFeedback }}
+      <!-- Banner de Feedback / Alertas -->
+      <div 
+        *ngIf="mensagemFeedback" 
+        class="alert-banner op-alert" 
+        role="status" 
+        aria-live="polite" 
+        aria-atomic="true">
+        <span>{{ mensagemFeedback }}</span>
       </div>
     </form>
   </div>
-</div>
+</section>

@@ -1,111 +1,169 @@
-<div class="control-panels" style="margin-top: 20px;">
+<section class="control-panels" style="margin-top: 20px;" aria-labelledby="product-page-title">
+  <!-- Painel de Cadastro -->
   <div class="panel" style="background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--panel-border);">
-    <h3 style="margin: 0 0 20px 0;">Cadastrar Produto</h3>
+    <h1 id="product-page-title" style="margin: 0 0 20px 0; font-size: 1.35em; color: var(--text-light, #f1f5f9);">Cadastrar Produto</h1>
 
-    <form (ngSubmit)="adicionarProduto()">
+    <form (ngSubmit)="adicionarProduto()" novalidate>
       <div class="form-group">
-        <label>ID DO PRODUTO</label>
-        <input type="text" [(ngModel)]="novoProduto.id" name="id" placeholder="Ex: PROD-1000" required>
+        <label for="prod-id">ID DO PRODUTO</label>
+        <input 
+          id="prod-id" 
+          type="text" 
+          [(ngModel)]="novoProduto.id" 
+          name="id" 
+          placeholder="Ex: PROD-1000" 
+          required
+          aria-required="true">
       </div>
 
       <div class="form-group">
-        <label>SKU DO PRODUTO (BASE)</label>
-        <input type="text" [(ngModel)]="novoProduto.sku" name="sku" placeholder="Ex: 1000" required>
+        <label for="prod-sku">SKU DO PRODUTO (BASE)</label>
+        <input 
+          id="prod-sku" 
+          type="text" 
+          [(ngModel)]="novoProduto.sku" 
+          name="sku" 
+          placeholder="Ex: 1000" 
+          required
+          aria-required="true">
       </div>
 
       <div class="form-group">
-        <label>NOME DO PRODUTO</label>
-        <input type="text" [(ngModel)]="novoProduto.nome" name="nome" placeholder="Ex: EIXO PRINCIPAL" required>
+        <label for="prod-name">NOME DO PRODUTO</label>
+        <input 
+          id="prod-name" 
+          type="text" 
+          [(ngModel)]="novoProduto.nome" 
+          name="nome" 
+          placeholder="Ex: EIXO PRINCIPAL" 
+          required
+          aria-required="true">
       </div>
 
-      <button type="submit" class="btn btn-full btn-blue" [disabled]="isCarregando">
+      <button 
+        type="submit" 
+        class="btn btn-full btn-blue" 
+        [disabled]="isCarregando"
+        [attr.aria-busy]="isCarregando">
         {{ isCarregando ? 'Processando...' : 'Cadastrar Produto' }}
       </button>
     </form>
 
-    <div *ngIf="mensagemFeedback" class="alert-banner" style="margin-top: 20px;">
+    <div 
+      *ngIf="mensagemFeedback" 
+      class="alert-banner" 
+      style="margin-top: 20px;" 
+      role="status" 
+      aria-live="polite" 
+      aria-atomic="true">
       {{ mensagemFeedback }}
     </div>
   </div>
 
-  <div class="panel" style="background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--panel-border);">
+  <!-- Painel de Catálogo e Listagem -->
+  <div class="panel" style="background-color: var(--bg-panel); padding: 25px; border-radius: 12px; border: 1px solid var(--panel-border); margin-top: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-      <h3 style="margin: 0;">Produtos Cadastrados</h3>
-      <input
-        type="text"
-        [(ngModel)]="termoBusca"
-        name="termoBusca"
-        placeholder="Pesquisar ID/SKU/NOME..."
-        style="max-width: 300px;">
+      <h2 style="margin: 0; font-size: 1.25em; color: var(--text-light, #f1f5f9);">Produtos Cadastrados</h2>
+      
+      <div>
+        <label for="search-product" class="visually-hidden">Pesquisar por ID, SKU ou Nome do produto</label>
+        <input
+          id="search-product"
+          type="search"
+          [(ngModel)]="termoBusca"
+          name="termoBusca"
+          placeholder="Pesquisar ID/SKU/NOME..."
+          style="max-width: 300px; min-height: 44px;"
+          aria-label="Pesquisar ID, SKU ou Nome do produto">
+      </div>
     </div>
 
     <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
       <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 680px;">
+        <caption class="visually-hidden">Tabela com listagem de produtos industriais e ações de manutenção</caption>
         <thead>
           <tr>
-            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">ID</th>
-            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">SKU</th>
-            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">PRODUTO</th>
-            <th style="padding: 15px; color: var(--text-muted); border-bottom: 2px solid var(--panel-border); font-size: 0.8em;">AÇÃO</th>
+            <th scope="col" style="padding: 15px; color: #cbd5e1; border-bottom: 2px solid var(--panel-border); font-size: 0.85em; font-weight: 800;">ID</th>
+            <th scope="col" style="padding: 15px; color: #cbd5e1; border-bottom: 2px solid var(--panel-border); font-size: 0.85em; font-weight: 800;">SKU</th>
+            <th scope="col" style="padding: 15px; color: #cbd5e1; border-bottom: 2px solid var(--panel-border); font-size: 0.85em; font-weight: 800;">PRODUTO</th>
+            <th scope="col" style="padding: 15px; color: #cbd5e1; border-bottom: 2px solid var(--panel-border); font-size: 0.85em; font-weight: 800;">AÇÃO</th>
           </tr>
         </thead>
 
         <tbody>
           <tr *ngIf="produtosFiltrados.length === 0 && !isCarregando">
-            <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">
+            <td colspan="4" style="text-align: center; padding: 30px; color: #94a3b8; font-weight: 600;" role="status">
               Nenhum produto encontrado.
             </td>
           </tr>
 
           <tr *ngIf="isCarregando && produtos.length === 0">
-            <td colspan="4" style="text-align: center; padding: 30px; color: var(--accent);">
+            <td colspan="4" style="text-align: center; padding: 30px; color: #00d4ff; font-weight: 700;" role="status" aria-live="polite">
               Comunicando com o servidor...
             </td>
           </tr>
 
           <tr *ngFor="let prod of produtosFiltrados">
-            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border);">{{ prod.id }}</td>
-            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border); font-weight: bold;">{{ prod.sku }}</td>
-            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border);">
+            <th scope="row" style="padding: 15px; border-bottom: 1px solid var(--panel-border); color: #f1f5f9; font-weight: normal;">
+              {{ prod.id }}
+            </th>
+            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border); font-weight: bold; color: #f1f5f9;">
+              {{ prod.sku }}
+            </td>
+            <td style="padding: 15px; border-bottom: 1px solid var(--panel-border); color: #f1f5f9;">
               <span *ngIf="produtoEmEdicaoId !== prod.id">{{ prod.nome }}</span>
-              <input
-                *ngIf="produtoEmEdicaoId === prod.id"
-                type="text"
-                [(ngModel)]="nomeEditado"
-                name="nomeEditado{{ prod.id }}"
-                style="padding: 8px;">
+              <div *ngIf="produtoEmEdicaoId === prod.id">
+                <label [for]="'edit-name-' + prod.id" class="visually-hidden">Editar nome do produto {{ prod.id }}</label>
+                <input
+                  [id]="'edit-name-' + prod.id"
+                  type="text"
+                  [(ngModel)]="nomeEditado"
+                  [name]="'nomeEditado' + prod.id"
+                  style="padding: 8px; min-height: 40px; width: 100%;">
+              </div>
             </td>
             <td style="padding: 15px; border-bottom: 1px solid var(--panel-border);">
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <!-- Botão Editar -->
                 <button
                   *ngIf="produtoEmEdicaoId !== prod.id"
                   type="button"
                   class="btn btn-blue"
-                  style="padding: 8px 12px; font-size: 0.8em;"
-                  (click)="iniciarEdicao(prod)">
+                  style="padding: 8px 12px; font-size: 0.85em; min-height: 40px;"
+                  (click)="iniciarEdicao(prod)"
+                  [attr.aria-label]="'Editar produto ' + prod.nome">
                   Editar
                 </button>
+
+                <!-- Botão Salvar -->
                 <button
                   *ngIf="produtoEmEdicaoId === prod.id"
                   type="button"
                   class="btn btn-green"
-                  style="padding: 8px 12px; font-size: 0.8em;"
-                  (click)="salvarEdicao(prod)">
+                  style="padding: 8px 12px; font-size: 0.85em; min-height: 40px;"
+                  (click)="salvarEdicao(prod)"
+                  [attr.aria-label]="'Salvar alterações no produto ' + prod.nome">
                   Salvar
                 </button>
+
+                <!-- Botão Cancelar -->
                 <button
                   *ngIf="produtoEmEdicaoId === prod.id"
                   type="button"
                   class="btn btn-yellow"
-                  style="padding: 8px 12px; font-size: 0.8em;"
-                  (click)="cancelarEdicao()">
+                  style="padding: 8px 12px; font-size: 0.85em; min-height: 40px;"
+                  (click)="cancelarEdicao()"
+                  [attr.aria-label]="'Cancelar edição do produto ' + prod.nome">
                   Cancelar
                 </button>
+
+                <!-- Botão Excluir / Confirmar -->
                 <button
                   type="button"
                   class="btn btn-red"
-                  style="padding: 8px 12px; font-size: 0.8em;"
-                  (click)="excluirProduto(prod.id)">
+                  style="padding: 8px 12px; font-size: 0.85em; min-height: 40px;"
+                  (click)="excluirProduto(prod.id)"
+                  [attr.aria-label]="(produtoExclusaoPendenteId === prod.id ? 'Confirmar exclusão definitiva do produto ' : 'Excluir produto ') + prod.nome">
                   {{ produtoExclusaoPendenteId === prod.id ? 'Confirmar' : 'Excluir' }}
                 </button>
               </div>
@@ -115,4 +173,4 @@
       </table>
     </div>
   </div>
-</div>
+</section>

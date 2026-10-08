@@ -1,46 +1,59 @@
-<div class="login-wrapper">
+<main class="login-wrapper" role="main">
   <div class="login-card">
-      <div class="login-logo">
-          <span class="brand-mark login-brand-mark">PCP</span>
-          <h2>PCPView</h2>
-          <h3>CONTROLE DE PRODUÇÃO</h3>
+    <header class="login-logo">
+      <span class="brand-mark login-brand-mark" aria-hidden="true">PCP</span>
+      <h1>PCPView</h1>
+      <p class="subtitle">CONTROLE DE PRODUÇÃO</p>
+    </header>
+
+    <!-- Alerta de Erro com ID para descrição acessível -->
+    <div 
+      *ngIf="errorMessage" 
+      id="login-error"
+      class="error-alert" 
+      role="alert" 
+      aria-live="assertive"
+      aria-atomic="true">
+      <span class="error-icon" aria-hidden="true">!</span>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
+      <div class="form-group">
+        <label for="login-email">Identificação (E-mail ou Crachá)</label>
+        <input 
+          id="login-email"
+          type="text" 
+          name="email" 
+          [(ngModel)]="email" 
+          placeholder="Ex: adminEquipSea@gmail.com" 
+          autocomplete="username"
+          required
+          [attr.aria-invalid]="errorMessage ? 'true' : 'false'"
+          [attr.aria-describedby]="errorMessage ? 'login-error' : null">
       </div>
 
-      <!-- Alerta de Erro -->
-      <div *ngIf="errorMessage" class="error-alert" role="alert" aria-live="assertive">
-          {{ errorMessage }}
+      <div class="form-group">
+        <label for="login-password">Senha</label>
+        <input 
+          id="login-password"
+          type="password" 
+          name="password" 
+          [(ngModel)]="password" 
+          placeholder="Digite sua senha" 
+          autocomplete="current-password"
+          required
+          [attr.aria-invalid]="errorMessage ? 'true' : 'false'"
+          [attr.aria-describedby]="errorMessage ? 'login-error' : null">
       </div>
-
-      <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
-          <div class="form-group">
-              <label for="login-email">Identificação (E-mail ou Crachá)</label>
-              <input 
-                id="login-email"
-                type="text" 
-                name="email" 
-                [(ngModel)]="email" 
-                placeholder="Ex: adminEquipSea@gmail.com" 
-                autocomplete="username"
-                required>
-          </div>
-          <div class="form-group">
-              <label for="login-password">Senha</label>
-              <input 
-                id="login-password"
-                type="password" 
-                name="password" 
-                [(ngModel)]="password" 
-                placeholder="******" 
-                autocomplete="current-password"
-                required>
-          </div>
-          
-          <button 
-            type="submit" 
-            class="btn btn-blue btn-full mt-4" 
-            [disabled]="isLoading || !loginForm.valid">
-            {{ isLoading ? 'Autenticando...' : 'Entrar no Sistema' }}
-          </button>
-      </form>
+      
+      <button 
+        type="submit" 
+        class="btn btn-blue btn-full" 
+        [disabled]="isLoading || !loginForm.valid"
+        [attr.aria-busy]="isLoading">
+        {{ isLoading ? 'Autenticando...' : 'Entrar no Sistema' }}
+      </button>
+    </form>
   </div>
-</div>
+</main>
