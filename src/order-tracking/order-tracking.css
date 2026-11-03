@@ -121,6 +121,25 @@
     font-weight: 700;
 }
 
+.execution-list {
+    display: grid;
+    gap: 6px;
+    min-width: 150px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.execution-list li {
+    min-height: 28px;
+    padding: 5px 8px;
+    border: 1px solid var(--panel-border);
+    border-radius: 7px;
+    background: var(--bg-dark);
+    color: inherit;
+    font-weight: 700;
+}
+
 .queue-position {
     display: inline-flex;
     align-items: center;

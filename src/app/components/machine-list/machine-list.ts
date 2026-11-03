@@ -238,6 +238,17 @@ export class MachineListComponent implements OnInit {
     );
   }
 
+  formatarData(data?: string): string {
+    if (!data) return 'Não informado';
+    return new Date(data).toLocaleString('pt-BR');
+  }
+
+  textoStatusExecucao(status?: ExecutionResponseDTO['status']): string {
+    if (status === 'PAUSADA_POR_QUEBRA') return 'PAUSADA POR QUEBRA';
+    if (status === 'FINALIZADA') return 'FINALIZADA';
+    return 'RODANDO';
+  }
+
   trackMaquina(_: number, maquina: MachineDTO): string {
     return maquina.id;
   }

@@ -113,6 +113,67 @@ describe('OpFormComponent', () => {
       idExecucao: 'exec-1',
       quantidadeProduzida: 3
     });
+    expect(component.opForm.controls.idMaquina.value).toBe('');
+    expect(component.opForm.controls.idEtapaSubOrdem.value).toBe('');
+  });
+
+  it('deve mostrar somente a etapa vinculada quando a maquina estiver ocupada', () => {
+    component.listaDeMaquinas = [
+      { id: 'M-01', nome: 'MAQUINA 01', operacional: true }
+    ];
+    component.listaDeOrdens = [
+      { codigoEtapa: 'OF-001-A-01', ordemNumero: 'OF-001', quantidadeTotal: 10, quantidadeProduzida: 2 },
+      { codigoEtapa: 'OF-002-A-01', ordemNumero: 'OF-002', quantidadeTotal: 8, quantidadeProduzida: 0 }
+    ];
+    component.listaDeExecucoes = [
+      {
+        id: 'exec-ativa',
+        maquinaId: 'M-01',
+        maquinaNome: 'MAQUINA 01',
+        subOrdemId: 'OF-001-A-01',
+        status: 'RODANDO'
+      }
+    ];
+
+    component.opForm.controls.idMaquina.setValue('M-01');
+
+    expect(component.maquinaSelecionadaOcupada).toBeTrue();
+    expect(component.opForm.controls.idEtapaSubOrdem.value).toBe('OF-001-A-01');
+    expect(component.etapasDisponiveisParaMaquina.map((etapa) => etapa.codigoEtapa))
+      .toEqual(['OF-001-A-01']);
+    expect(component.execucoesDisponiveisParaMaquina.map((execucao) => execucao.id))
+      .toEqual(['exec-ativa']);
+  });
+
+  it('deve permitir que outra maquina livre veja e inicie a mesma etapa', () => {
+    component.listaDeMaquinas = [
+      { id: 'M-01', nome: 'MANDRILHADORA', operacional: true },
+      { id: 'M-02', nome: 'TORNO', operacional: true }
+    ];
+    component.listaDeOrdens = [
+      { codigoEtapa: 'OF-001-A-01', ordemNumero: 'OF-001', quantidadeTotal: 100, quantidadeProduzida: 0 },
+      { codigoEtapa: 'OF-002-A-01', ordemNumero: 'OF-002', quantidadeTotal: 50, quantidadeProduzida: 0 }
+    ];
+    component.listaDeExecucoes = [
+      {
+        id: 'exec-mandrilhadora',
+        maquinaId: 'M-01',
+        maquinaNome: 'MANDRILHADORA',
+        subOrdemId: 'OF-001-A-01',
+        status: 'RODANDO'
+      }
+    ];
+
+    component.opForm.patchValue({
+      idMaquina: 'M-02',
+      idEtapaSubOrdem: 'OF-001-A-01'
+    });
+
+    expect(component.maquinaSelecionadaOcupada).toBeFalse();
+    expect(component.etapasDisponiveisParaMaquina.map((etapa) => etapa.codigoEtapa))
+      .toEqual(['OF-001-A-01', 'OF-002-A-01']);
+    expect(component.execucaoAtual).toBeUndefined();
+    expect(component.podeIniciar).toBeTrue();
   });
 
   it('deve cancelar execucao rodando', () => {

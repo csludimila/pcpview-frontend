@@ -68,17 +68,19 @@ export class OrderTrackingComponent implements OnInit {
       next: ({ ordens, execucoes }) => {
         this.mensagemFeedback = '';
         this.execucoes = execucoes;
-        this.ordensFinalizadas = ordens.filter((ordem) => this.estaFinalizada(ordem));
+        this.ordensFinalizadas = ordens.filter((ordem) =>
+          !this.estaCancelada(ordem) &&
+          (this.estaFinalizada(ordem) || this.temPecasProntas(ordem))
+        );
         this.ordensCanceladas = ordens.filter((ordem) => this.estaCancelada(ordem));
         this.ordensProducao = ordens.filter((ordem) =>
           !this.estaFinalizada(ordem) &&
           !this.estaCancelada(ordem) &&
-          (ordem.status === 'EM_PROCESSAMENTO' || this.temExecucaoAberta(ordem))
+          this.temExecucaoAberta(ordem)
         );
         this.ordensAguardando = ordens.filter((ordem) =>
           !this.estaFinalizada(ordem) &&
           !this.estaCancelada(ordem) &&
-          ordem.status !== 'EM_PROCESSAMENTO' &&
           !this.temExecucaoAberta(ordem)
         );
         this.ordenarPorPrioridade(this.ordensAguardando);
@@ -102,12 +104,20 @@ export class OrderTrackingComponent implements OnInit {
   }
 
   quantidadeOrdem(ordem: OrderResponseDTO): string {
-    return `${ordem.quantidadeProduzida || 0} / ${ordem.quantidadeTotal || 0}`;
+    return `${this.quantidadeProduzidaOrdem(ordem)} / ${ordem.quantidadeTotal || 0}`;
+  }
+
+  saldoOrdem(ordem: OrderResponseDTO): number {
+    return Math.max(0, (ordem.quantidadeTotal || 0) - this.quantidadeProduzidaOrdem(ordem));
+  }
+
+  pecasProntasOrdem(ordem: OrderResponseDTO): number {
+    return this.quantidadeProduzidaOrdem(ordem);
   }
 
   progressoOrdem(ordem: OrderResponseDTO): number {
     const total = ordem.quantidadeTotal || 0;
-    const produzida = ordem.quantidadeProduzida || 0;
+    const produzida = this.quantidadeProduzidaOrdem(ordem);
     if (total <= 0) return 0;
 
     return Math.min(100, Math.round((produzida / total) * 100));
@@ -127,24 +137,36 @@ export class OrderTrackingComponent implements OnInit {
 
   textoStatusOrdem(ordem: OrderResponseDTO): string {
     if (ordem.status === 'CANCELADO') return 'CANCELADA';
-    if (ordem.status === 'FINALIZADO') return 'FINALIZADA';
-    if (ordem.status === 'EM_PROCESSAMENTO') return 'EM PRODUÇÃO';
-    if (ordem.status === 'AGUARDANDO') return 'AGUARDANDO';
     if (this.estaFinalizada(ordem)) return 'FINALIZADA';
     if (this.temExecucaoAberta(ordem)) return 'EM PRODUÇÃO';
+    if (this.temProducaoParcial(ordem)) return 'AGUARDANDO RETOMADA';
     return 'AGUARDANDO';
   }
 
   classeStatusOrdem(ordem: OrderResponseDTO): string {
     if (ordem.status === 'CANCELADO') return 'status-badge status-cancelado';
     if (this.estaFinalizada(ordem)) return 'status-badge status-finalizado';
-    if (ordem.status === 'EM_PROCESSAMENTO' || this.temExecucaoAberta(ordem)) return 'status-badge status-producao';
+    if (this.temExecucaoAberta(ordem)) return 'status-badge status-producao';
     return 'status-badge status-aguardando';
   }
 
+  textoStatusPecasProntas(ordem: OrderResponseDTO): string {
+    return this.estaFinalizada(ordem) ? 'FINALIZADA' : 'PARCIALMENTE PRODUZIDA';
+  }
+
+  classeStatusPecasProntas(ordem: OrderResponseDTO): string {
+    return this.estaFinalizada(ordem)
+      ? 'status-badge status-finalizado'
+      : 'status-badge status-aguardando';
+  }
+
   execucaoAtivaDaOrdem(ordem: OrderResponseDTO): ExecutionResponseDTO | undefined {
+    return this.execucoesAtivasDaOrdem(ordem)[0];
+  }
+
+  execucoesAtivasDaOrdem(ordem: OrderResponseDTO): ExecutionResponseDTO[] {
     const codigosSubOrdens = new Set((ordem.subOrdens || []).map((subOrdem) => subOrdem.codigoEtapa));
-    return this.execucoes.find((execucao) =>
+    return this.execucoes.filter((execucao) =>
       this.execucaoEmAndamento(execucao) &&
       !!execucao.subOrdemId &&
       codigosSubOrdens.has(execucao.subOrdemId)
@@ -168,6 +190,10 @@ export class OrderTrackingComponent implements OnInit {
 
   trackSubOrdem(_: number, subOrdem: SubOrderResponseDTO): string {
     return subOrdem.codigoEtapa || '';
+  }
+
+  trackExecucao(index: number, execucao: ExecutionResponseDTO): string {
+    return execucao.id || `${execucao.maquinaId || execucao.maquinaNome || index}-${execucao.subOrdemId || index}`;
   }
 
   private filtrarOrdens(ordens: OrderResponseDTO[]): OrderResponseDTO[] {
@@ -194,22 +220,45 @@ export class OrderTrackingComponent implements OnInit {
   }
 
   private estaFinalizada(ordem: OrderResponseDTO): boolean {
-    if (ordem.status) return ordem.status === 'FINALIZADO';
+    if (ordem.status === 'CANCELADO') return false;
+
+    const subOrdens = this.linhaProcesso(ordem);
+    if (subOrdens.length > 0) {
+      return subOrdens.every((subOrdem) => this.etapaFinalizada(subOrdem));
+    }
 
     const quantidadeTotal = ordem.quantidadeTotal || 0;
     const quantidadeProduzida = ordem.quantidadeProduzida || 0;
     if (quantidadeTotal > 0 && quantidadeProduzida >= quantidadeTotal) return true;
 
-    const subOrdens = this.linhaProcesso(ordem);
-    return subOrdens.length > 0 && subOrdens.every((subOrdem) => this.etapaFinalizada(subOrdem));
+    return ordem.status === 'FINALIZADO';
   }
 
   private etapaFinalizada(etapa: SubOrderResponseDTO): boolean {
-    if (etapa.status) return etapa.status === 'FINALIZADO';
-
     const total = etapa.quantidadeTotal || 0;
     const produzida = etapa.quantidadeProduzida || 0;
-    return total > 0 && produzida >= total;
+    if (total > 0) return produzida >= total;
+
+    return etapa.status === 'FINALIZADO';
+  }
+
+  private temProducaoParcial(ordem: OrderResponseDTO): boolean {
+    return this.temPecasProntas(ordem) && !this.estaFinalizada(ordem);
+  }
+
+  private temPecasProntas(ordem: OrderResponseDTO): boolean {
+    return this.quantidadeProduzidaOrdem(ordem) > 0;
+  }
+
+  private quantidadeProduzidaOrdem(ordem: OrderResponseDTO): number {
+    if (typeof ordem.quantidadeProduzida === 'number') {
+      return ordem.quantidadeProduzida;
+    }
+
+    const subOrdens = this.linhaProcesso(ordem);
+    if (subOrdens.length === 0) return 0;
+
+    return Math.min(...subOrdens.map((etapa) => etapa.quantidadeProduzida || 0));
   }
 
   private ordenarPorPrioridade(ordens: OrderResponseDTO[]) {

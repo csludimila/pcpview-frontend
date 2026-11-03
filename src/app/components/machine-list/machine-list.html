@@ -1,4 +1,4 @@
-<main class="machine-page" role="main" aria-labelledby="machines-page-title">
+<section class="machine-page" aria-labelledby="machines-page-title">
   <header class="machine-page-header">
     <h1 id="machines-page-title">Máquinas</h1>
 
@@ -176,8 +176,8 @@
         <!-- Bloco de Execução Ativa no Chão de Fábrica -->
         <div class="active-production" *ngIf="execucaoAtivaDaMaquina(maq)" role="region" [attr.aria-label]="'Produção ativa na máquina ' + maq.nome">
           <div>
-            <span>Execução</span>
-            <strong>{{ execucaoAtivaDaMaquina(maq)?.id }}</strong>
+            <span>Início</span>
+            <strong>{{ formatarData(execucaoAtivaDaMaquina(maq)?.dataInicio) }}</strong>
           </div>
           <div>
             <span>Etapa</span>
@@ -189,7 +189,7 @@
           </div>
           <div>
             <span>Status</span>
-            <strong>{{ execucaoAtivaDaMaquina(maq)?.status }}</strong>
+            <strong>{{ textoStatusExecucao(execucaoAtivaDaMaquina(maq)?.status) }}</strong>
           </div>
         </div>
 
@@ -204,4 +204,4 @@
       </article>
     </div>
   </section>
-</main>
+</section>

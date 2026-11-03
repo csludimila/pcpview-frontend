@@ -47,6 +47,24 @@ O projeto usa CSS proprio para manter fidelidade ao prototipo. Bootstrap e Boots
 
 O frontend possui um tratamento global de erro para mostrar uma mensagem amigavel caso alguma falha inesperada escape das telas principais.
 
+## Acessibilidade
+
+- Estrutura alinhada as regras automatizaveis da WCAG 2.1 niveis A e AA.
+- Widget oficial VLibras para traducao do conteudo textual para Libras.
+- Idioma principal da pagina definido como `pt-BR`.
+- Atalho de teclado para pular diretamente ao conteudo principal.
+- Foco visivel para links, botoes e campos durante a navegacao por teclado.
+- Rotulos associados aos campos e atributos ARIA em controles e mensagens dinamicas.
+- Reducao de animacoes quando o sistema operacional solicita menos movimento.
+- Tabelas com legenda acessivel e cabecalhos identificados semanticamente.
+- Status acompanhados por texto, sem depender apenas de cores.
+- Alvos de toque ampliados para operacao por teclado, tela touch ou uso de luvas.
+- Auditoria automatizada com `axe-core` integrada aos testes Jasmine/Karma.
+
+O VLibras e uma ferramenta de apoio e nao substitui um interprete humano em aulas, reunioes ou outros conteudos audiovisuais.
+
+Atualmente, a suite possui 67 testes aprovados, incluindo 7 auditorias de componentes com `axe-core`. Os testes automatizados auxiliam a validacao, mas a avaliacao completa tambem deve incluir navegacao manual por teclado e testes com leitores de tela, como NVDA ou TalkBack.
+
 ## Publicar online
 
 No build de producao, o Angular usa:

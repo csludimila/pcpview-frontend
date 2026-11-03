@@ -126,4 +126,26 @@ describe('MachineListComponent', () => {
     expect(component.execucoesAbertas.length).toBe(1);
     expect(component.execucaoAtivaDaMaquina({ id: 'M-01', nome: 'TORNO CNC' })?.id).toBe('exec-pausada');
   });
+
+  it('deve mostrar dados operacionais sem exibir o UUID da execucao', () => {
+    component.maquinas = [{ id: 'M-01', nome: 'TORNO CNC', operacional: true }];
+    component.execucoesAbertas = [
+      {
+        id: '93e6c82b-620c-4082-8b2b-475901f8bc03',
+        maquinaId: 'M-01',
+        maquinaNome: 'TORNO CNC',
+        subOrdemId: 'OF-100-A-01',
+        operadorNome: 'operador@pcpview.local',
+        status: 'RODANDO',
+        dataInicio: '2026-10-29T20:00:00'
+      }
+    ];
+
+    fixture.detectChanges();
+
+    const texto = (fixture.nativeElement as HTMLElement).textContent || '';
+    expect(texto).toContain('OF-100-A-01');
+    expect(texto).toContain('operador@pcpview.local');
+    expect(texto).not.toContain('93e6c82b-620c-4082-8b2b-475901f8bc03');
+  });
 });
