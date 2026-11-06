@@ -1,3 +1,5 @@
+<a class="skip-link" href="#main-content">Pular para o conteúdo principal</a>
+
 <header class="header container app-header" *ngIf="mostrarMenu" role="banner">
 
   <div class="header-logo-area">
@@ -16,18 +18,6 @@
           [attr.aria-current]="rlaPlanejamento.isActive ? 'page' : null">
           <span class="nav-code" aria-hidden="true">PL</span>
           <span>Planejamento</span>
-        </a>
-      </li>
-
-      <li *ngIf="isAdmin()">
-        <a 
-          class="btn nav-btn" 
-          routerLink="/produtos" 
-          routerLinkActive="active" 
-          #rlaProdutos="routerLinkActive"
-          [attr.aria-current]="rlaProdutos.isActive ? 'page' : null">
-          <span class="nav-code" aria-hidden="true">PR</span>
-          <span>Produtos</span>
         </a>
       </li>
 
@@ -82,7 +72,7 @@
   </nav>
 
   <div class="header-user-area">
-    <span id="user-info" aria-label="Usuário logado">{{ userLabel }}</span>
+    <span id="user-info" [attr.aria-label]="'Usuário logado: ' + userLabel">{{ userLabel }}</span>
     <button 
       class="btn btn-red logout-btn" 
       type="button" 
@@ -110,6 +100,6 @@
   </button>
 </aside>
 
-<main class="container-fluid app-content" id="main-content" role="main">
+<main id="main-content" class="container-fluid app-content" role="main" tabindex="-1">
   <router-outlet></router-outlet>
 </main>

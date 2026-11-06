@@ -33,24 +33,34 @@
         <select 
           id="op-sub-order" 
           formControlName="idEtapaSubOrdem"
+          [attr.disabled]="maquinaSelecionadaOcupada ? true : null"
           aria-describedby="op-queue-count"
           aria-required="true">
           <option value="" class="placeholder-option">-- Selecione a etapa --</option>
-          <option *ngFor="let ord of listaDeOrdens" [value]="ord.codigoEtapa">
+          <option *ngFor="let ord of etapasDisponiveisParaMaquina" [value]="ord.codigoEtapa">
             {{ textoOpcaoOrdem(ord) }}
           </option>
         </select>
         <div id="op-queue-count" class="queue-hint">
-          {{ listaDeOrdens.length }} etapas com saldo para apontamento
+          <ng-container *ngIf="maquinaSelecionadaOcupada; else etapasLivres">
+            Máquina ocupada: somente a etapa vinculada pode ser apontada.
+          </ng-container>
+          <ng-template #etapasLivres>
+            {{ etapasDisponiveisParaMaquina.length }} etapas disponíveis para apontamento
+          </ng-template>
         </div>
       </div>
 
       <!-- Execução em Andamento -->
       <div class="form-group">
         <label for="op-execution">EXECUÇÃO EM ANDAMENTO</label>
-        <select id="op-execution" formControlName="idExecucao" aria-describedby="op-execution-hint">
+        <select
+          id="op-execution"
+          formControlName="idExecucao"
+          [attr.disabled]="maquinaSelecionadaOcupada ? true : null"
+          aria-describedby="op-execution-hint">
           <option value="" class="placeholder-option">-- SELECIONE SE JÁ ESTIVER RODANDO --</option>
-          <option *ngFor="let execucao of execucoesEmAndamento" [value]="execucao.id">
+          <option *ngFor="let execucao of execucoesDisponiveisParaMaquina" [value]="execucao.id">
             {{ textoOpcaoExecucao(execucao) }}
           </option>
         </select>
@@ -84,9 +94,9 @@
           (click)="onIniciar()" 
           [disabled]="!podeIniciar"
           accesskey="i"
-          aria-keyshortcuts="Alt+I"
-          aria-label="Iniciar execução de produção (Atalho Alt + I)">
-          Iniciar <kbd aria-hidden="true">(Alt+I)</kbd>
+          aria-keyshortcuts="Alt+I">
+          Iniciar <span class="visually-hidden">execução de produção</span>
+          <kbd aria-hidden="true">(Alt+I)</kbd>
         </button>
 
         <button 
@@ -95,9 +105,9 @@
           (click)="onCancelar()" 
           [disabled]="!podeCancelar"
           accesskey="c"
-          aria-keyshortcuts="Alt+C"
-          aria-label="Cancelar execução ativa (Atalho Alt + C)">
-          Cancelar Execução <kbd aria-hidden="true">(Alt+C)</kbd>
+          aria-keyshortcuts="Alt+C">
+          Cancelar Execução <span class="visually-hidden">ativa</span>
+          <kbd aria-hidden="true">(Alt+C)</kbd>
         </button>
       </div>
 
@@ -122,9 +132,9 @@
           (click)="onFinalizar()" 
           [disabled]="!podeFinalizar"
           accesskey="f"
-          aria-keyshortcuts="Alt+F"
-          aria-label="Apontar peças e finalizar execução (Atalho Alt + F)">
-          Apontar / Finalizar <kbd aria-hidden="true">(Alt+F)</kbd>
+          aria-keyshortcuts="Alt+F">
+          Apontar / Finalizar <span class="visually-hidden">peças da execução</span>
+          <kbd aria-hidden="true">(Alt+F)</kbd>
         </button>
       </div>
 

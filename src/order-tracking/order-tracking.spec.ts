@@ -64,6 +64,47 @@ describe('OrderTrackingComponent', () => {
     expect(component.classeStatusOrdem(ordem)).toContain('status-producao');
   });
 
+  it('deve mostrar todas as maquinas que trabalham na mesma ordem', () => {
+    const ordem = {
+      numeroOrdem: 'OF-DUPLA',
+      quantidadeTotal: 100,
+      quantidadeProduzida: 0,
+      subOrdens: [
+        { codigoEtapa: 'OF-DUPLA-A-01', quantidadeTotal: 100, quantidadeProduzida: 0 }
+      ]
+    };
+    component.ordensProducao = [ordem];
+    component.execucoes = [
+      {
+        id: 'exec-mandrilhadora',
+        maquinaId: 'M-01',
+        maquinaNome: 'MANDRILHADORA',
+        subOrdemId: 'OF-DUPLA-A-01',
+        operadorNome: 'operador1@pcpview.local',
+        status: 'RODANDO',
+        dataInicio: '2026-11-03T19:00:00'
+      },
+      {
+        id: 'exec-torno',
+        maquinaId: 'M-02',
+        maquinaNome: 'TORNO',
+        subOrdemId: 'OF-DUPLA-A-01',
+        operadorNome: 'operador2@pcpview.local',
+        status: 'RODANDO',
+        dataInicio: '2026-11-03T19:05:00'
+      }
+    ];
+
+    expect(component.execucoesAtivasDaOrdem(ordem).map((execucao) => execucao.maquinaNome))
+      .toEqual(['MANDRILHADORA', 'TORNO']);
+
+    component.abaAtiva = 'producao';
+    fixture.detectChanges();
+    const texto = (fixture.nativeElement as HTMLElement).textContent || '';
+    expect(texto).toContain('MANDRILHADORA');
+    expect(texto).toContain('TORNO');
+  });
+
   it('deve classificar ordem finalizada pela quantidade produzida', () => {
     const ordem = {
       numeroOrdem: 'OF-200',
@@ -86,17 +127,87 @@ describe('OrderTrackingComponent', () => {
   it('deve usar os status de ordem retornados pelo backend', () => {
     executionOrderServiceSpy.listarOrdens.and.returnValue(of([
       { numeroOrdem: 'OF-AGUARDANDO', status: 'AGUARDANDO', prioridade: 2 },
-      { numeroOrdem: 'OF-PRODUCAO', status: 'EM_PROCESSAMENTO', prioridade: 1 },
-      { numeroOrdem: 'OF-FINALIZADA', status: 'FINALIZADO', prioridade: 3 },
+      {
+        numeroOrdem: 'OF-PRODUCAO',
+        status: 'EM_PROCESSAMENTO',
+        prioridade: 1,
+        quantidadeTotal: 10,
+        quantidadeProduzida: 2,
+        subOrdens: [{ codigoEtapa: 'OF-PRODUCAO-A-01', quantidadeTotal: 10, quantidadeProduzida: 2 }]
+      },
+      {
+        numeroOrdem: 'OF-FINALIZADA',
+        status: 'FINALIZADO',
+        prioridade: 3,
+        quantidadeTotal: 10,
+        quantidadeProduzida: 10,
+        subOrdens: [{ codigoEtapa: 'OF-FINALIZADA-A-01', quantidadeTotal: 10, quantidadeProduzida: 10 }]
+      },
       { numeroOrdem: 'OF-CANCELADA', status: 'CANCELADO', prioridade: 4 }
+    ]));
+    executionOrderServiceSpy.listarTodas.and.returnValue(of([
+      {
+        id: 'exec-producao',
+        maquinaId: 'M-01',
+        subOrdemId: 'OF-PRODUCAO-A-01',
+        status: 'RODANDO'
+      }
     ]));
 
     component.carregarDados();
 
     expect(component.ordensAguardando.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-AGUARDANDO']);
     expect(component.ordensProducao.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-PRODUCAO']);
-    expect(component.ordensFinalizadas.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-FINALIZADA']);
+    expect(component.ordensFinalizadas.map((ordem) => ordem.numeroOrdem))
+      .toEqual(['OF-PRODUCAO', 'OF-FINALIZADA']);
     expect(component.ordensCanceladas.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-CANCELADA']);
+  });
+
+  it('deve devolver producao parcial sem execucao ativa para aguardando retomada', () => {
+    executionOrderServiceSpy.listarOrdens.and.returnValue(of([
+      {
+        numeroOrdem: 'OF-PARCIAL',
+        status: 'EM_PROCESSAMENTO',
+        quantidadeTotal: 150,
+        quantidadeProduzida: 75,
+        subOrdens: [
+          {
+            codigoEtapa: 'OF-PARCIAL-A-01',
+            quantidadeTotal: 150,
+            quantidadeProduzida: 75,
+            status: 'EM_PROCESSAMENTO'
+          }
+        ]
+      }
+    ]));
+    executionOrderServiceSpy.listarTodas.and.returnValue(of([]));
+
+    component.carregarDados();
+
+    expect(component.ordensProducao.length).toBe(0);
+    expect(component.ordensAguardando.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-PARCIAL']);
+    expect(component.ordensFinalizadas.map((ordem) => ordem.numeroOrdem)).toEqual(['OF-PARCIAL']);
+    expect(component.textoStatusOrdem(component.ordensAguardando[0])).toBe('AGUARDANDO RETOMADA');
+    expect(component.quantidadeOrdem(component.ordensAguardando[0])).toBe('75 / 150');
+    expect(component.saldoOrdem(component.ordensAguardando[0])).toBe(75);
+    expect(component.textoStatusPecasProntas(component.ordensFinalizadas[0])).toBe('PARCIALMENTE PRODUZIDA');
+  });
+
+  it('deve mostrar dez pecas prontas e saldo noventa para uma ordem de cem', () => {
+    const ordem = {
+      numeroOrdem: 'OF-10-DE-100',
+      quantidadeTotal: 100,
+      quantidadeProduzida: 10,
+      subOrdens: [
+        { codigoEtapa: 'OF-10-DE-100-A-01', quantidadeTotal: 100, quantidadeProduzida: 10 }
+      ]
+    };
+
+    expect(component.quantidadeOrdem(ordem)).toBe('10 / 100');
+    expect(component.saldoOrdem(ordem)).toBe(90);
+    expect(component.pecasProntasOrdem(ordem)).toBe(10);
+    expect(component.progressoOrdem(ordem)).toBe(10);
+    expect(component.textoStatusPecasProntas(ordem)).toBe('PARCIALMENTE PRODUZIDA');
   });
 
   it('deve tratar execucao pausada por quebra como em andamento', () => {

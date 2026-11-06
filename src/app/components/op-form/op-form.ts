@@ -117,6 +117,37 @@ export class OpFormComponent implements OnInit {
     );
   }
 
+  get execucaoDaMaquinaSelecionada(): ExecutionResponseDTO | undefined {
+    return this.execucaoAbertaDaMaquina(this.opForm.controls.idMaquina.value);
+  }
+
+  get maquinaSelecionadaOcupada(): boolean {
+    return !!this.execucaoDaMaquinaSelecionada;
+  }
+
+  get etapasDisponiveisParaMaquina(): SubOrderOption[] {
+    const execucaoDaMaquina = this.execucaoDaMaquinaSelecionada;
+
+    if (execucaoDaMaquina?.subOrdemId) {
+      const etapaVinculada = this.listaDeOrdens.find(
+        (etapa) => etapa.codigoEtapa === execucaoDaMaquina.subOrdemId
+      );
+
+      return etapaVinculada
+        ? [etapaVinculada]
+        : [{ codigoEtapa: execucaoDaMaquina.subOrdemId, ordemNumero: '' }];
+    }
+
+    return this.listaDeOrdens;
+  }
+
+  get execucoesDisponiveisParaMaquina(): ExecutionResponseDTO[] {
+    if (!this.opForm.controls.idMaquina.value) return this.execucoesEmAndamento;
+
+    const execucaoDaMaquina = this.execucaoDaMaquinaSelecionada;
+    return execucaoDaMaquina ? [execucaoDaMaquina] : [];
+  }
+
   get subOrdemSelecionada(): SubOrderOption | undefined {
     const codigoEtapa = this.opForm.controls.idEtapaSubOrdem.value;
     return this.listaDeOrdens.find((ordem) => ordem.codigoEtapa === codigoEtapa);
@@ -163,7 +194,6 @@ export class OpFormComponent implements OnInit {
     return !!this.opForm.controls.idMaquina.value &&
       !!this.opForm.controls.idEtapaSubOrdem.value &&
       this.maquinaPodeIniciar &&
-      !this.execucaoAbertaDaSubOrdem(this.opForm.controls.idEtapaSubOrdem.value) &&
       !this.execucaoAbertaDaMaquina(this.opForm.controls.idMaquina.value);
   }
 
@@ -180,6 +210,10 @@ export class OpFormComponent implements OnInit {
   }
 
   textoOpcaoOrdem(ordem: SubOrderOption): string {
+    if (ordem.quantidadeTotal === undefined) {
+      return `${ordem.codigoEtapa} | etapa vinculada à máquina`;
+    }
+
     return `${ordem.codigoEtapa} | ${ordem.quantidadeProduzida || 0} / ${ordem.quantidadeTotal} peças`;
   }
 
@@ -241,7 +275,9 @@ export class OpFormComponent implements OnInit {
       next: () => {
         this.mensagemFeedback = 'Execução cancelada com sucesso.';
         this.execucaoAtual = undefined;
-        this.opForm.patchValue({ idExecucao: '' });
+        this.opForm.reset({ idMaquina: '', idEtapaSubOrdem: '', idExecucao: '', quantidadeProduzida: 1 });
+        this.carregarMaquinas();
+        this.carregarOrdensPlanejadas();
         this.carregarExecucoes();
       },
       error: (err) => this.mensagemFeedback = apiErrorMessage(err, 'Erro ao cancelar execução.')
@@ -265,6 +301,18 @@ export class OpFormComponent implements OnInit {
     }
 
     this.execucaoAtual = this.listaDeExecucoes.find((execucao) => execucao.id === id);
+
+    if (this.execucaoAtual) {
+      const maquinaId = this.execucaoAtual.maquinaId || this.listaDeMaquinas.find(
+        (maquina) => maquina.nome === this.execucaoAtual?.maquinaNome
+      )?.id;
+
+      if (maquinaId && this.opForm.controls.idMaquina.value !== maquinaId) {
+        this.opForm.controls.idMaquina.setValue(maquinaId, { emitEvent: false });
+        this.maquinaSelecionada = this.listaDeMaquinas.find((maquina) => maquina.id === maquinaId);
+      }
+    }
+
     if (this.execucaoAtual?.subOrdemId && this.opForm.controls.idEtapaSubOrdem.value !== this.execucaoAtual.subOrdemId) {
       this.opForm.controls.idEtapaSubOrdem.setValue(this.execucaoAtual.subOrdemId, { emitEvent: false });
     }
@@ -274,12 +322,36 @@ export class OpFormComponent implements OnInit {
     const codigoEtapa = this.opForm.controls.idEtapaSubOrdem.value;
     const maquinaId = this.opForm.controls.idMaquina.value;
 
-    const execucaoPorEtapa = codigoEtapa ? this.execucaoAbertaDaSubOrdem(codigoEtapa) : undefined;
     const execucaoPorMaquina = maquinaId ? this.execucaoAbertaDaMaquina(maquinaId) : undefined;
-    this.execucaoAtual = execucaoPorEtapa || execucaoPorMaquina || undefined;
+
+    if (execucaoPorMaquina) {
+      this.execucaoAtual = execucaoPorMaquina;
+
+      if (execucaoPorMaquina.subOrdemId && codigoEtapa !== execucaoPorMaquina.subOrdemId) {
+        this.opForm.controls.idEtapaSubOrdem.setValue(execucaoPorMaquina.subOrdemId, { emitEvent: false });
+      }
+
+      if (execucaoPorMaquina.id && this.opForm.controls.idExecucao.value !== execucaoPorMaquina.id) {
+        this.opForm.controls.idExecucao.setValue(execucaoPorMaquina.id, { emitEvent: false });
+      }
+      return;
+    }
+
+    if (maquinaId) {
+      this.execucaoAtual = undefined;
+      if (this.opForm.controls.idExecucao.value) {
+        this.opForm.controls.idExecucao.setValue('', { emitEvent: false });
+      }
+      return;
+    }
+
+    const execucaoPorEtapa = codigoEtapa ? this.execucaoAbertaDaSubOrdem(codigoEtapa) : undefined;
+    this.execucaoAtual = execucaoPorEtapa;
 
     if (this.execucaoAtual?.id && this.opForm.controls.idExecucao.value !== this.execucaoAtual.id) {
       this.opForm.controls.idExecucao.setValue(this.execucaoAtual.id, { emitEvent: false });
+    } else if (!this.execucaoAtual && this.opForm.controls.idExecucao.value) {
+      this.opForm.controls.idExecucao.setValue('', { emitEvent: false });
     }
   }
 

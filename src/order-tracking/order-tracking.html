@@ -9,7 +9,7 @@
     </button>
 
     <button class="summary-card done" [class.active]="abaAtiva === 'finalizadas'" (click)="mudarAba('finalizadas')">
-      <strong>Finalizadas</strong>
+      <strong>Finalizadas / Prontas</strong>
     </button>
 
     <button class="summary-card canceled" [class.active]="abaAtiva === 'canceladas'" (click)="mudarAba('canceladas')">
@@ -49,14 +49,15 @@
             <th>PRIORIDADE</th>
             <th>CRIADA EM</th>
             <th>ETAPAS</th>
-            <th>QUANTIDADE</th>
+            <th>PRODUZIDO / TOTAL</th>
+            <th>SALDO PENDENTE</th>
             <th>PROGRESSO</th>
             <th>STATUS</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="ordensAguardandoFiltradas.length === 0">
-            <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
+            <td colspan="8" class="empty-cell">Nenhuma ordem encontrada.</td>
           </tr>
           <tr *ngFor="let ordem of ordensAguardandoFiltradas; trackBy: trackOrdem">
             <td class="lot-cell">
@@ -71,6 +72,7 @@
             <td>{{ formatarData(ordem.dataCriacao) }}</td>
             <td>{{ ordem.subOrdens?.length || 0 }}</td>
             <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
+            <td class="quantity-cell">{{ saldoOrdem(ordem) }}</td>
             <td>{{ progressoOrdem(ordem) }}%</td>
             <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
           </tr>
@@ -110,10 +112,34 @@
                 </span>
               </div>
             </td>
-            <td>{{ execucaoAtivaDaOrdem(ordem)?.subOrdemId || '-' }}</td>
-            <td class="text-blue">{{ execucaoAtivaDaOrdem(ordem)?.maquinaNome || '-' }}</td>
-            <td>{{ execucaoAtivaDaOrdem(ordem)?.operadorNome || '-' }}</td>
-            <td>{{ formatarData(execucaoAtivaDaOrdem(ordem)?.dataInicio) }}</td>
+            <td>
+              <ul class="execution-list" aria-label="Etapas em execução">
+                <li *ngFor="let execucao of execucoesAtivasDaOrdem(ordem); trackBy: trackExecucao">
+                  {{ execucao.subOrdemId || '-' }}
+                </li>
+              </ul>
+            </td>
+            <td class="text-blue">
+              <ul class="execution-list" aria-label="Máquinas trabalhando nesta ordem">
+                <li *ngFor="let execucao of execucoesAtivasDaOrdem(ordem); trackBy: trackExecucao">
+                  {{ execucao.maquinaNome || execucao.maquinaId || '-' }}
+                </li>
+              </ul>
+            </td>
+            <td>
+              <ul class="execution-list" aria-label="Operadores trabalhando nesta ordem">
+                <li *ngFor="let execucao of execucoesAtivasDaOrdem(ordem); trackBy: trackExecucao">
+                  {{ execucao.operadorNome || '-' }}
+                </li>
+              </ul>
+            </td>
+            <td>
+              <ul class="execution-list" aria-label="Horários de início das execuções">
+                <li *ngFor="let execucao of execucoesAtivasDaOrdem(ordem); trackBy: trackExecucao">
+                  {{ formatarData(execucao.dataInicio) }}
+                </li>
+              </ul>
+            </td>
             <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
             <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
           </tr>
@@ -124,7 +150,7 @@
 
   <div class="panel" *ngIf="abaAtiva === 'finalizadas' && !isCarregando">
     <div class="panel-header tracking-panel-title done">
-      Ordens Finalizadas
+      Peças Finalizadas / Prontas
     </div>
 
     <div class="data-table-container">
@@ -135,14 +161,15 @@
             <th>CRIADA EM</th>
             <th>ÚLTIMO APONTAMENTO</th>
             <th>ETAPAS</th>
-            <th>QUANTIDADE</th>
+            <th>PRODUZIDO / TOTAL</th>
+            <th>PEÇAS PRONTAS</th>
             <th>PROGRESSO</th>
             <th>STATUS</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="ordensFinalizadasFiltradas.length === 0">
-            <td colspan="7" class="empty-cell">Nenhuma ordem encontrada.</td>
+            <td colspan="8" class="empty-cell">Nenhuma peça finalizada.</td>
           </tr>
           <tr *ngFor="let ordem of ordensFinalizadasFiltradas; trackBy: trackOrdem">
             <td class="lot-cell">
@@ -157,8 +184,9 @@
             <td>{{ formatarData(execucaoFinalDaOrdem(ordem)?.dataFim) }}</td>
             <td>{{ ordem.subOrdens?.length || 0 }}</td>
             <td class="quantity-cell">{{ quantidadeOrdem(ordem) }}</td>
+            <td class="quantity-cell">{{ pecasProntasOrdem(ordem) }}</td>
             <td>{{ progressoOrdem(ordem) }}%</td>
-            <td><span [class]="classeStatusOrdem(ordem)">{{ textoStatusOrdem(ordem) }}</span></td>
+            <td><span [class]="classeStatusPecasProntas(ordem)">{{ textoStatusPecasProntas(ordem) }}</span></td>
           </tr>
         </tbody>
       </table>
