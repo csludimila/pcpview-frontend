@@ -8,17 +8,23 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
         return 'Servidor indisponível. Verifique se a API publicada está online.';
       }
 
-      return 'Servidor indisponível. Inicie o backend e confirme que ele está rodando em http://localhost:8080.';
+      return `Servidor indisponível. Confirme se a API está acessível em ${environment.apiUrl}.`;
     }
 
     if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error.trim();
+      const mensagem = error.error.trim();
+      return mensagemTecnica(mensagem) ? fallback : mensagem;
     }
 
     if (error.error?.message) {
-      return error.error.message;
+      const mensagem = String(error.error.message).trim();
+      return mensagemTecnica(mensagem) ? fallback : mensagem;
     }
   }
 
   return fallback;
+}
+
+function mensagemTecnica(mensagem: string): boolean {
+  return /erro inesperado:|validation failed|org\.springframework|jakarta\.validation|exception/i.test(mensagem);
 }

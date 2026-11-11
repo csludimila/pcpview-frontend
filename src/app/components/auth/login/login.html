@@ -20,14 +20,16 @@
 
     <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
       <div class="form-group">
-        <label for="login-email">Identificação (E-mail ou Crachá)</label>
+        <label for="login-email">E-mail</label>
         <input 
           id="login-email"
-          type="text" 
+          type="email"
           name="email" 
           [(ngModel)]="email" 
-          placeholder="Ex: adminEquipSea@gmail.com" 
+          placeholder="Ex: usuario@exemplo.com"
           autocomplete="username"
+          inputmode="email"
+          email
           required
           [attr.aria-invalid]="errorMessage ? 'true' : 'false'"
           [attr.aria-describedby]="errorMessage ? 'login-error' : null">

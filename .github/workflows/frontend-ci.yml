@@ -36,4 +36,4 @@ jobs:
         run: npm run build:prod
 
       - name: Build frontend Docker image
-        run: docker build --build-arg API_URL=http://localhost:8080 -t pcpview-frontend-ci .
+        run: docker build --build-arg API_URL=/api -t pcpview-frontend-ci .

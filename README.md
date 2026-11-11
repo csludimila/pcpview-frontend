@@ -8,7 +8,7 @@ https://github.com/Carlos-DMS/PCPView.git
 
 O front consome somente as funcionalidades que existem nesse back-end: autenticação JWT, usuários, produtos, máquinas, ordens, subordens e execuções.
 
-## Rodar localmente
+## Rodar localmente com o back local
 
 Suba o back-end do Carlos em `http://localhost:8080` e depois rode o front:
 
@@ -23,6 +23,29 @@ Frontend:
 http://localhost:4200
 ```
 
+## Rodar o front local com o back da AWS
+
+O backend oficial esta publicado em:
+
+```text
+http://13.58.223.39:8080
+```
+
+Swagger:
+
+```text
+http://13.58.223.39:8080/swagger-ui/index.html
+```
+
+Para testar o Angular local contra essa API, nao e necessario iniciar o backend no computador:
+
+```powershell
+cd C:\Users\alexj\OneDrive\Desktop\pcpview-frontend
+npm run start:aws
+```
+
+Depois acesse `http://localhost:4200`. O CORS da API foi validado para essa origem.
+
 ## Login local
 
 O back-end cria um administrador inicial pelo arquivo `AdminSeedConfig.java`. Consulte esse seed no back-end local e troque a senha antes de publicar.
@@ -33,6 +56,7 @@ Novos usuários cadastrados entram como `USER`. Um administrador pode promovê-l
 
 ```powershell
 npm start
+npm run start:aws
 npm run build
 npm run build:local
 npm run build:prod
@@ -43,7 +67,8 @@ npm run test:types
 O projeto usa CSS proprio para manter fidelidade ao prototipo. Bootstrap e Bootstrap Icons nao sao dependencias do frontend.
 
 `npm start` usa `environment.development.ts` e aponta para `http://localhost:8080`.
-`npm run build:prod` usa `environment.ts`; antes de publicar, troque `apiUrl` para a URL real do backend.
+`npm run start:aws` usa `environment.aws.ts` e aponta para o backend publicado na AWS.
+`npm run build:prod` usa `environment.ts` e aponta para `/api`, que e encaminhado pelo Nginx ao backend.
 
 O frontend possui um tratamento global de erro para mostrar uma mensagem amigavel caso alguma falha inesperada escape das telas principais.
 
@@ -63,7 +88,7 @@ O frontend possui um tratamento global de erro para mostrar uma mensagem amigave
 
 O VLibras e uma ferramenta de apoio e nao substitui um interprete humano em aulas, reunioes ou outros conteudos audiovisuais.
 
-Atualmente, a suite possui 67 testes aprovados, incluindo 7 auditorias de componentes com `axe-core`. Os testes automatizados auxiliam a validacao, mas a avaliacao completa tambem deve incluir navegacao manual por teclado e testes com leitores de tela, como NVDA ou TalkBack.
+Atualmente, a suite possui 71 testes aprovados, incluindo 7 auditorias de componentes com `axe-core`. Os testes automatizados auxiliam a validacao, mas a avaliacao completa tambem deve incluir navegacao manual por teclado e testes com leitores de tela, como NVDA ou TalkBack.
 
 ## Publicar online
 
@@ -73,16 +98,20 @@ No build de producao, o Angular usa:
 src/environments/environment.ts
 ```
 
-Troque `apiUrl` pela URL real do backend antes de publicar:
+O endereco usado pelo navegador e relativo ao proprio front:
 
 ```ts
 export const environment = {
   production: true,
-  apiUrl: 'https://api.seu-dominio.com'
+  apiUrl: '/api'
 };
 ```
 
-Depois rode `npm run build:prod` e publique a pasta `dist/pcpview-frontend/browser`.
+Por padrao, o Nginx encaminha `/api/*` para `http://13.58.223.39:8080/*`. Esse proxy evita
+CORS e o bloqueio de conteudo misto quando o endereco publico do front usar HTTPS.
+
+Enquanto o backend estiver disponivel somente por HTTP, nao publique apenas os
+arquivos estaticos em uma plataforma HTTPS sem configurar um proxy equivalente.
 
 ## Docker
 
@@ -91,9 +120,22 @@ O frontend possui `Dockerfile` e `nginx.conf` para servir o Angular como aplicac
 Build manual:
 
 ```powershell
-docker build --build-arg API_URL=https://sua-api.com -t pcpview-frontend .
+docker build --build-arg API_URL=/api -t pcpview-frontend .
 docker run --rm -p 4200:80 pcpview-frontend
 ```
+
+Se o endereco do backend mudar, ele pode ser informado sem recompilar o Angular:
+
+```powershell
+docker run --rm -p 4200:80 `
+  -e BACKEND_URL=http://novo-endereco-do-backend:8080 `
+  pcpview-frontend
+```
+
+Ao escolher a plataforma de hospedagem do front, informe ao responsavel pelo
+backend o endereco publico definitivo. Se o front usar o proxy `/api`, as chamadas
+do navegador serao de mesma origem; ainda assim, o endereco deve ser registrado
+na documentacao e nas regras de seguranca da infraestrutura.
 
 ## Telas principais
 
@@ -130,10 +172,12 @@ docker run --rm -p 4200:80 pcpview-frontend
 - Campo `maquinaId` retornado nas execuções.
 - Execuções passam para `PAUSADA_POR_QUEBRA` quando a máquina fica indisponível e voltam para `RODANDO` quando ela é liberada.
 - Login inválido retorna HTTP 401 com mensagem tratável pelo front.
+- Backend e banco MySQL publicados na AWS com dados persistentes.
+- Regra de uma unica execucao ativa por maquina aplicada no backend.
 
-## Pontos para pedir ao back-end
+## Proximos passos de infraestrutura
 
-- Configurar CORS por variável de ambiente para permitir a URL do front quando publicar na nuvem.
+- Disponibilizar HTTPS para o backend ou manter o acesso por meio do proxy do front.
+- Informar ao backend a URL publica definitiva do front quando a plataforma for escolhida.
 - Se quiser vincular OF a produto, incluir produto no `OrderRequestDTO`/`OrderResponseDTO`.
 - Se quiser fila por máquina, setor, roteiro industrial, pausa/retomada, setup de primeira peça, manutenção com retorno para fila ou dashboards, esses endpoints ainda não existem no back oficial.
-- Para nuvem com banco persistente, trocar o H2 em memória por um banco hospedado, como PostgreSQL, MySQL ou H2 em arquivo persistente com volume.
