@@ -22,15 +22,24 @@ export class LoginComponent {
   errorMessage = '';
 
   onSubmit(): void {
-    if (!this.email || !this.password) {
+    const emailNormalizado = this.email.trim();
+
+    if (!emailNormalizado || !this.password) {
       this.errorMessage = 'Por favor, preencha todos os campos.';
       return;
     }
 
+    if (!this.emailValido(emailNormalizado)) {
+      this.errorMessage = 'Informe um endereço de e-mail válido.';
+      return;
+    }
+
+    this.email = emailNormalizado;
+
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.authService.login({ email: this.email, password: this.password }).subscribe({
+    this.authService.login({ email: emailNormalizado, password: this.password }).subscribe({
       next: () => {
         this.isLoading = false;
         const role = this.authService.getRole();
@@ -41,5 +50,9 @@ export class LoginComponent {
         this.errorMessage = apiErrorMessage(err, 'Credenciais inválidas. Verifique o login e a senha.');
       }
     });
+  }
+
+  private emailValido(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 }

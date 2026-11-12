@@ -1,4 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://sua-api-production.com' // <-- Troque pela URL da nuvem quando tiver
+  // Em producao, o navegador chama o proxy /api do Nginx.
+  // Isso evita CORS e conteudo misto quando o front estiver em HTTPS.
+  apiUrl: '/api'
 };

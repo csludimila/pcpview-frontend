@@ -56,4 +56,29 @@ describe('LoginComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/operacao']);
   });
+
+  it('remove espacos externos do e-mail antes de autenticar', () => {
+    authServiceSpy.login.and.returnValue(of({ token: 'token-admin' }));
+    authServiceSpy.getRole.and.returnValue('ADMIN');
+    spyOn(router, 'navigate');
+
+    component.email = '  admin@pcpview.local  ';
+    component.password = '123456';
+    component.onSubmit();
+
+    expect(authServiceSpy.login).toHaveBeenCalledWith({
+      email: 'admin@pcpview.local',
+      password: '123456'
+    });
+    expect(component.email).toBe('admin@pcpview.local');
+  });
+
+  it('bloqueia formato de e-mail invalido antes de chamar a API', () => {
+    component.email = 'usuario-invalido';
+    component.password = '123456';
+    component.onSubmit();
+
+    expect(authServiceSpy.login).not.toHaveBeenCalled();
+    expect(component.errorMessage).toBe('Informe um endereço de e-mail válido.');
+  });
 });
